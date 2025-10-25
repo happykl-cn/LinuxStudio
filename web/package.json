@@ -1,0 +1,37 @@
+{
+  "name": "linux-studio-website",
+  "version": "1.0.0",
+  "description": "Official website for Linux Studio - Next-generation Linux system management framework",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8000 -o",
+    "build": "echo 'No build step required - static site'",
+    "minify:css": "npx csso styles.css -o styles.min.css",
+    "minify:js": "npx terser script.js -o script.min.js -c -m",
+    "minify:html": "npx html-minifier index.html -o index.min.html --collapse-whitespace --remove-comments",
+    "minify:all": "npm run minify:css && npm run minify:js && npm run minify:html"
+  },
+  "keywords": [
+    "linux",
+    "framework",
+    "system-management",
+    "panel",
+    "devops",
+    "plugin-system",
+    "cpp"
+  ],
+  "author": "Linux Studio Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/linux-studio/website"
+  },
+  "homepage": "https://linuxstudio.io",
+  "devDependencies": {
+    "csso-cli": "^4.0.2",
+    "html-minifier": "^4.0.0",
+    "http-server": "^14.1.1",
+    "terser": "^5.16.0"
+  }
+}
+

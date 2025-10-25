@@ -1,0 +1,16 @@
+{
+    "name": "linux-studio/website",
+    "description": "Linux Studio Website with Contact Form",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "phpmailer/phpmailer": "^6.8"
+    },
+    "authors": [
+        {
+            "name": "Linux Studio Team",
+            "email": "iloveshit@happykl.cn"
+        }
+    ]
+}
+
