@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Linux Studio - 请在电脑上浏览以获得最佳体验">
+    <title>Linux Studio - 请在电脑上浏览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0b0d 0%, #1a1b23 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 10px 50px rgba(102, 126, 234, 0.6);
+            }
+        }
+
+        .icon svg {
+            width: 50px;
+            height: 50px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            color: #a0a6b1;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .features {
+            list-style: none;
+            text-align: left;
+            margin: 0 auto 2rem;
+            max-width: 300px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .features li {
+            padding: 0.75rem 0;
+            color: #a0a6b1;
+            position: relative;
+            padding-left: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .footer {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .qr-hint {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .qr-hint p {
+            font-size: 0.9rem;
+            color: #a0a6b1;
+            margin: 0;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            .icon {
+                width: 80px;
+                height: 80px;
+            }
+
+            .icon svg {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+    <script>
+        // 检测是否为桌面设备，如果是则跳转回主页（防止循环跳转）
+        (function() {
+            const REDIRECT_KEY = 'device_redirect_done';
+            
+            function isMobileDevice() {
+                const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                
+                // 手机设备（不包括平板）
+                if (/iPhone|iPod|Windows Phone|BlackBerry|webOS/i.test(userAgent)) {
+                    return true;
+                }
+                
+                // Android 手机（排除平板）
+                if (/android/i.test(userAgent) && /mobile/i.test(userAgent)) {
+                    return true;
+                }
+                
+                // 小屏幕设备（手机）
+                if (window.innerWidth <= 768) {
+                    return true;
+                }
+                
+                // 平板设备 - 根据屏幕方向决定
+                const isTablet = /iPad|Android(?!.*Mobile)/i.test(userAgent);
+                if (isTablet) {
+                    // 平板竖屏时显示移动版，横屏时显示桌面版
+                    if (window.innerWidth <= 1024) {
+                        return true;
+                    }
+                    return false;
+                }
+                
+                return false;
+            }
+
+            // 检查是否已经重定向过
+            const hasRedirected = sessionStorage.getItem(REDIRECT_KEY);
+            
+            if (!hasRedirected) {
+                const isMobile = isMobileDevice();
+                
+                // 如果是桌面设备，跳转回主页
+                if (!isMobile) {
+                    sessionStorage.setItem(REDIRECT_KEY, 'to_desktop');
+                    const currentPath = window.location.pathname;
+                    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                    window.location.href = basePath + 'index.html';
+                    console.log('💻 检测到桌面设备，正在跳转到桌面版页面...');
+                }
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16" style="color: #667eea;">
+                <path fill-rule="evenodd" d="M15.528 2.973a.75.75 0 0 1 .472.696v8.662a.75.75 0 0 1-.472.696l-7.25 2.9a.75.75 0 0 1-.557 0l-7.25-2.9A.75.75 0 0 1 0 12.331V3.669a.75.75 0 0 1 .471-.696L7.443.184l.01-.003.268-.108a.75.75 0 0 1 .558 0l.269.108.01.003 6.97 2.789ZM10.404 2 4.25 4.461 1.846 3.5 1 3.839v.4l6.5 2.6v7.922l.5.2.5-.2V6.84l6.5-2.6v-.4l-.846-.339L8 5.961 5.596 5l6.154-2.461L10.404 2Z"/>
+            </svg>
+            <span class="logo-text">Linux Studio</span>
+        </div>
+
+        <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+        </div>
+
+        <h1>请在电脑上浏览</h1>
+        
+        <p class="subtitle">
+            Linux Studio 网站为桌面端优化设计<br>
+            为了获得最佳浏览体验，请使用电脑访问
+        </p>
+
+        <ul class="features">
+            <li>完整的交互式终端演示</li>
+            <li>流畅的动画和视觉效果</li>
+            <li>更好的代码展示体验</li>
+            <li>完整的功能和插件展示</li>
+        </ul>
+
+        <div class="qr-hint">
+            <p>💻 推荐使用 Chrome、Firefox 或 Safari 浏览器</p>
+        </div>
+
+        <div class="footer">
+            © 2025 Linux Studio. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>
+

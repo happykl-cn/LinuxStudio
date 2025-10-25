@@ -1,0 +1,12 @@
+设置语言
+检查root
+万能安装函数
+确认安装
+打印欢迎
+日志文件
+打印日志
+写入计数
+//可拓展：错误上传服务器，检测版本号是否为官方长期支持的版本
+echo "POST DONE! Congratulation!Let me do sth important..."
+
+安装Gunc,CMAKE,VIM,VCPKG,git

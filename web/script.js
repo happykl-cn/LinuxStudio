@@ -1,4 +1,85 @@
 // ===========================
+// 移动设备检测并跳转（防止循环跳转）
+// ===========================
+(function() {
+    // 使用 sessionStorage 防止循环跳转
+    const REDIRECT_KEY = 'device_redirect_done';
+    
+    function isMobileDevice() {
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        
+        // 优先检测 User Agent - 这是最可靠的方式
+        // 手机设备（不包括平板）
+        if (/iPhone|iPod|Windows Phone|BlackBerry|webOS/i.test(userAgent)) {
+            return true;
+        }
+        
+        // Android 手机（排除平板）
+        if (/android/i.test(userAgent) && /mobile/i.test(userAgent)) {
+            return true;
+        }
+        
+        // 小屏幕设备（手机）
+        if (window.innerWidth <= 768) {
+            return true;
+        }
+        
+        // 平板设备 - 根据屏幕方向决定
+        const isTablet = /iPad|Android(?!.*Mobile)/i.test(userAgent);
+        if (isTablet) {
+            // 平板竖屏时显示移动版，横屏时显示桌面版
+            if (window.innerWidth <= 1024) {
+                return true;
+            }
+            return false;
+        }
+        
+        return false;
+    }
+
+    // 检查是否已经重定向过
+    const hasRedirected = sessionStorage.getItem(REDIRECT_KEY);
+    
+    if (!hasRedirected) {
+        const isMobile = isMobileDevice();
+        const isOnMobilePage = window.location.pathname.includes('mobile.html');
+        
+        // 需要跳转到移动页面
+        if (isMobile && !isOnMobilePage) {
+            sessionStorage.setItem(REDIRECT_KEY, 'to_mobile');
+            const currentPath = window.location.pathname;
+            const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+            window.location.href = basePath + 'mobile.html';
+            console.log('📱 检测到移动设备，正在跳转到移动端页面...');
+        }
+    }
+    
+    // 监听窗口大小变化（平板旋转屏幕时）
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            // 清除重定向标记，允许重新检测
+            sessionStorage.removeItem(REDIRECT_KEY);
+            
+            const isMobile = isMobileDevice();
+            const isOnMobilePage = window.location.pathname.includes('mobile.html');
+            
+            // 需要跳转
+            if (isMobile && !isOnMobilePage) {
+                const currentPath = window.location.pathname;
+                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                window.location.href = basePath + 'mobile.html';
+            } else if (!isMobile && isOnMobilePage) {
+                const currentPath = window.location.pathname;
+                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                window.location.href = basePath + 'index.html';
+            }
+        }, 500); // 延迟 500ms 避免频繁触发
+    }, { passive: true });
+})();
+
+// ===========================
 // Performance Optimization
 // ===========================
 // Detect if user prefers reduced motion
@@ -7,6 +88,56 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 // Add class to body for reduced motion
 if (prefersReducedMotion) {
     document.body.classList.add('reduce-motion');
+}
+
+// FPS 监控器（开发模式）
+if (window.location.search.includes('debug=fps')) {
+    let lastTime = performance.now();
+    let frames = 0;
+    let fps = 0;
+    
+    const fpsDisplay = document.createElement('div');
+    fpsDisplay.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #0f0;
+        padding: 8px 12px;
+        font-family: monospace;
+        font-size: 14px;
+        border-radius: 4px;
+        z-index: 99999;
+        pointer-events: none;
+    `;
+    document.body.appendChild(fpsDisplay);
+    
+    function updateFPS() {
+        frames++;
+        const currentTime = performance.now();
+        
+        if (currentTime >= lastTime + 1000) {
+            fps = Math.round((frames * 1000) / (currentTime - lastTime));
+            fpsDisplay.textContent = `FPS: ${fps}`;
+            
+            // 根据帧率改变颜色
+            if (fps >= 55) {
+                fpsDisplay.style.color = '#0f0'; // 绿色 - 优秀
+            } else if (fps >= 40) {
+                fpsDisplay.style.color = '#ff0'; // 黄色 - 良好
+            } else {
+                fpsDisplay.style.color = '#f00'; // 红色 - 需要优化
+            }
+            
+            frames = 0;
+            lastTime = currentTime;
+        }
+        
+        requestAnimationFrame(updateFPS);
+    }
+    
+    requestAnimationFrame(updateFPS);
+    console.log('🎯 FPS 监控已启用 - 访问 ?debug=fps 查看帧率');
 }
 
 // 检测设备性能
@@ -114,7 +245,7 @@ function setupCopyButtons() {
 setupCopyButtons();
 
 // ===========================
-// Terminal Animation
+// Terminal Animation - 高性能优化版本
 // ===========================
 const terminalBody = document.getElementById('terminalBody');
 
@@ -132,10 +263,13 @@ const terminalCommands = [
 
 let commandIndex = 0;
 let isAnimating = false;
+let animationFrameId = null;
 
+// 使用 requestAnimationFrame 优化打字机效果
 function typeCommand(text, callback) {
     const line = document.createElement('div');
     line.className = 'terminal-line';
+    line.style.opacity = '0';
     
     const prompt = document.createElement('span');
     prompt.className = 'terminal-prompt';
@@ -150,33 +284,73 @@ function typeCommand(text, callback) {
     line.appendChild(prompt);
     line.appendChild(textSpan);
     line.appendChild(cursor);
-    terminalBody.appendChild(line);
+    
+    // 使用 DocumentFragment 减少重排
+    const fragment = document.createDocumentFragment();
+    fragment.appendChild(line);
+    terminalBody.appendChild(fragment);
+    
+    // 淡入动画
+    requestAnimationFrame(() => {
+        line.style.transition = 'opacity 0.2s ease';
+        line.style.opacity = '1';
+    });
     
     let i = 0;
-    const typingInterval = setInterval(() => {
-        if (i < text.length) {
-            textSpan.textContent += text[i];
-            i++;
-        } else {
-            clearInterval(typingInterval);
-            cursor.remove();
-            callback();
+    let lastTime = performance.now();
+    const charDelay = 30; // 减少延迟，更快速度
+    
+    function typeNextChar(currentTime) {
+        const elapsed = currentTime - lastTime;
+        
+        if (elapsed >= charDelay) {
+            if (i < text.length) {
+                // 使用 textContent 一次性更新，避免多次重排
+                textSpan.textContent = text.substring(0, i + 1);
+                i++;
+                lastTime = currentTime;
+            } else {
+                // 完成打字，移除光标
+                cursor.style.opacity = '0';
+                setTimeout(() => {
+                    cursor.remove();
+                    callback();
+                }, 100);
+                return;
+            }
         }
-    }, 50);
+        
+        animationFrameId = requestAnimationFrame(typeNextChar);
+    }
+    
+    animationFrameId = requestAnimationFrame(typeNextChar);
 }
 
+// 优化输出函数
 function addOutput(text, type) {
     const line = document.createElement('div');
     line.className = 'terminal-line';
+    line.style.opacity = '0';
     
     const output = document.createElement('span');
     output.className = type === 'success' ? 'terminal-output terminal-success' : 'terminal-output';
     output.textContent = text;
     
     line.appendChild(output);
-    terminalBody.appendChild(line);
+    
+    // 使用 DocumentFragment 减少重排
+    const fragment = document.createDocumentFragment();
+    fragment.appendChild(line);
+    terminalBody.appendChild(fragment);
+    
+    // 淡入动画
+    requestAnimationFrame(() => {
+        line.style.transition = 'opacity 0.15s ease';
+        line.style.opacity = '1';
+    });
 }
 
+// 优化动画执行
 function runTerminalAnimation() {
     if (isAnimating || commandIndex >= terminalCommands.length) {
         return;
@@ -189,26 +363,43 @@ function runTerminalAnimation() {
         typeCommand(current.text, () => {
             commandIndex++;
             isAnimating = false;
-            setTimeout(runTerminalAnimation, 500);
+            // 使用 requestAnimationFrame 代替 setTimeout
+            requestAnimationFrame(() => {
+                setTimeout(runTerminalAnimation, 300);
+            });
         });
     } else {
         addOutput(current.text, current.type);
         commandIndex++;
         isAnimating = false;
-        setTimeout(runTerminalAnimation, 300);
+        // 使用 requestAnimationFrame 代替 setTimeout
+        requestAnimationFrame(() => {
+            setTimeout(runTerminalAnimation, 150);
+        });
     }
 }
 
-// Start terminal animation when in viewport
-const observer = new IntersectionObserver((entries) => {
+// 使用 IntersectionObserver 优化性能
+const terminalObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting && commandIndex === 0) {
-            setTimeout(runTerminalAnimation, 500);
+            // 延迟启动动画
+            requestAnimationFrame(() => {
+                setTimeout(runTerminalAnimation, 300);
+            });
+        } else if (!entry.isIntersecting && animationFrameId) {
+            // 不在视口时取消动画
+            cancelAnimationFrame(animationFrameId);
         }
     });
-}, { threshold: 0.5 });
+}, { 
+    threshold: 0.3,
+    rootMargin: '50px'
+});
 
-observer.observe(terminalBody);
+if (terminalBody) {
+    terminalObserver.observe(terminalBody);
+}
 
 // ===========================
 // Plugin Categories
@@ -419,55 +610,300 @@ const navLinks = document.querySelector('.nav-links');
 
 if (mobileMenuToggle) {
     mobileMenuToggle.addEventListener('click', () => {
-        navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
-        navLinks.style.position = 'absolute';
-        navLinks.style.top = '72px';
-        navLinks.style.left = '0';
-        navLinks.style.right = '0';
-        navLinks.style.flexDirection = 'column';
-        navLinks.style.background = 'var(--bg-secondary)';
-        navLinks.style.padding = 'var(--spacing-md)';
-        navLinks.style.borderBottom = '1px solid var(--border-color)';
+        const isActive = navLinks.classList.contains('active');
+        
+        if (isActive) {
+            navLinks.classList.remove('active');
+            mobileMenuToggle.classList.remove('active');
+            document.body.style.overflow = '';
+        } else {
+            navLinks.classList.add('active');
+            mobileMenuToggle.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    });
+    
+    // 点击导航链接后关闭菜单
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+            mobileMenuToggle.classList.remove('active');
+            document.body.style.overflow = '';
+        });
     });
 }
 
 // ===========================
-// Parallax Effect for Hero (高度优化)
+// GitHub Star Button (服务器端存储)
+// ===========================
+class StarCounter {
+    constructor() {
+        this.apiUrl = '/star_system.php';
+        this.button = document.getElementById('starButton');
+        this.countElement = document.getElementById('starCount');
+        this.totalStars = 0;
+        this.userStarred = false;
+        this.userId = null;
+        this.isLoading = false;
+        this.init();
+    }
+    
+    async init() {
+        // 加载数据
+        await this.loadData();
+        
+        // 绑定点击事件
+        if (this.button) {
+            this.button.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (!this.isLoading) {
+                    await this.toggleStar();
+                }
+            });
+        }
+    }
+    
+    async loadData() {
+        try {
+            console.log('🔄 Loading star data from server...');
+            const response = await fetch(this.apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to load star data');
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.totalStars = data.totalStars || 0;
+                this.userStarred = data.userStarred || false;
+                this.userId = data.userId;
+                
+                console.log('✅ Star data loaded:', {
+                    totalStars: this.totalStars,
+                    userStarred: this.userStarred,
+                    userId: this.userId
+                });
+                
+                this.updateDisplay();
+            } else {
+                throw new Error(data.message || 'Failed to load data');
+            }
+        } catch (error) {
+            console.error('❌ Failed to load star data:', error);
+            // 使用默认值
+            this.totalStars = 0;
+            this.userStarred = false;
+            this.updateDisplay();
+        }
+    }
+    
+    async toggleStar() {
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
+        
+        // 禁用按钮
+        if (this.button) {
+            this.button.style.opacity = '0.6';
+            this.button.style.pointerEvents = 'none';
+        }
+        
+        try {
+            console.log('🔄 Toggling star...');
+            const response = await fetch(this.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId: this.userId
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to toggle star');
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.totalStars = data.totalStars;
+                this.userStarred = data.userStarred;
+                
+                console.log('✅ Star toggled:', {
+                    action: data.action,
+                    totalStars: this.totalStars,
+                    userStarred: this.userStarred
+                });
+                
+                this.updateDisplay();
+                this.showToast(data.message);
+            } else {
+                throw new Error(data.message || 'Failed to toggle star');
+            }
+        } catch (error) {
+            console.error('❌ Failed to toggle star:', error);
+            this.showToast('操作失败，请稍后重试');
+        } finally {
+            this.isLoading = false;
+            
+            // 恢复按钮
+            if (this.button) {
+                this.button.style.opacity = '1';
+                this.button.style.pointerEvents = 'auto';
+            }
+        }
+    }
+    
+    updateDisplay() {
+        if (this.countElement) {
+            this.countElement.textContent = this.formatCount(this.totalStars);
+        }
+        
+        if (this.button) {
+            if (this.userStarred) {
+                this.button.classList.add('starred');
+                this.button.title = '已 Star - 点击取消';
+            } else {
+                this.button.classList.remove('starred');
+                this.button.title = '点击 Star 支持我们';
+            }
+        }
+    }
+    
+    formatCount(count) {
+        if (count >= 1000000) {
+            return (count / 1000000).toFixed(1) + 'M';
+        } else if (count >= 1000) {
+            return (count / 1000).toFixed(1) + 'K';
+        }
+        return count.toString();
+    }
+    
+    showToast(message) {
+        // 创建 toast 元素
+        const toast = document.createElement('div');
+        toast.className = 'star-toast';
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.95), rgba(255, 193, 7, 0.95));
+            color: #1a1b23;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // 动画显示
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        });
+        
+        // 3秒后移除
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) translateY(-20px)';
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    }
+}
+
+// 初始化 Star 计数器
+document.addEventListener('DOMContentLoaded', () => {
+    const starCounter = new StarCounter();
+    window.starCounter = starCounter; // 暴露到全局以便调试
+});
+
+// ===========================
+// Parallax Effect for Hero (超高性能优化 - 60fps)
 // ===========================
 if (!prefersReducedMotion && isHighPerformance) {
-    let ticking = false;
     const heroVisual = document.querySelector('.hero-visual');
     const hero = document.querySelector('.hero');
     
     if (heroVisual && hero) {
-        const handleParallax = () => {
-            if (!ticking) {
-                ticking = true;
-                
-                window.requestAnimationFrame(() => {
-                    const scrolled = window.pageYOffset;
-                    const heroRect = hero.getBoundingClientRect();
-                    
-                    // 仅在 hero 区域可见时才执行
-                    if (heroRect.bottom > 0 && heroRect.top < window.innerHeight) {
-                        // 减小视差幅度 0.2 -> 0.1
-                        heroVisual.style.transform = `translate3d(0, ${scrolled * 0.1}px, 0)`;
-                    }
-                    
-                    ticking = false;
-                });
-            }
-        };
+        // 预先设置 will-change 优化
+        heroVisual.style.willChange = 'transform';
         
-        // 使用更大的节流间隔
-        const throttledParallax = throttle(handleParallax, 32); // 降低到 30fps
-        window.addEventListener('scroll', throttledParallax, { passive: true });
+        let lastScrollY = 0;
+        let currentTranslateY = 0;
+        let targetTranslateY = 0;
+        let rafId = null;
+        
+        // 使用插值平滑动画，提升视觉流畅度
+        function smoothParallax() {
+            // 线性插值，使动画更平滑
+            const diff = targetTranslateY - currentTranslateY;
+            
+            if (Math.abs(diff) > 0.1) {
+                currentTranslateY += diff * 0.15; // 平滑系数
+                
+                // 使用 transform 而不是直接赋值，减少字符串拼接
+                heroVisual.style.transform = `translate3d(0,${currentTranslateY.toFixed(2)}px,0)`;
+                
+                rafId = requestAnimationFrame(smoothParallax);
+            } else {
+                currentTranslateY = targetTranslateY;
+                heroVisual.style.transform = `translate3d(0,${currentTranslateY.toFixed(2)}px,0)`;
+                rafId = null;
+            }
+        }
+        
+        // 滚动处理函数
+        function handleParallax() {
+            const scrollY = window.pageYOffset;
+            const heroRect = hero.getBoundingClientRect();
+            
+            // 仅在 hero 区域可见时才计算
+            if (heroRect.bottom > 0 && heroRect.top < window.innerHeight) {
+                // 计算目标位置（减小视差幅度以提升性能）
+                targetTranslateY = scrollY * 0.08; // 0.1 -> 0.08 更细腻
+                
+                // 如果动画未在运行，启动它
+                if (!rafId) {
+                    rafId = requestAnimationFrame(smoothParallax);
+                }
+            } else if (rafId) {
+                // 不在视口时取消动画
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        }
+        
+        // 直接使用 scroll 事件 + requestAnimationFrame，不使用节流
+        window.addEventListener('scroll', handleParallax, { passive: true });
+        
+        // 初始化
+        handleParallax();
     }
 } else {
     // 低性能设备完全禁用视差
     const heroVisual = document.querySelector('.hero-visual');
     if (heroVisual) {
         heroVisual.style.transform = 'none';
+        heroVisual.style.willChange = 'auto';
     }
 }
 

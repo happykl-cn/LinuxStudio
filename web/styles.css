@@ -521,9 +521,17 @@ body {
     color: #10b981;
 }
 
-/* Terminal Window */
+/* Terminal Window - 超高性能优化 */
 .hero-visual {
     position: relative;
+    /* 强制 GPU 加速和独立图层 */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform;
+    /* 使用 contain 优化渲染 */
+    contain: layout style paint;
+    /* 确保子像素渲染精确 */
+    transform-style: preserve-3d;
 }
 
 .terminal-window {
@@ -532,14 +540,18 @@ body {
     border-radius: var(--radius-card);
     overflow: hidden;
     box-shadow: var(--shadow-xl);
+    /* 强制 GPU 加速 */
+    transform: translateZ(0);
+    backface-visibility: hidden;
     will-change: opacity, transform;
-    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    /* 优化动画 - 使用 transform 和 opacity */
+    animation: fadeInUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translate3d(0, 30px, 0);
+        transform: translate3d(0, 20px, 0);
     }
     to {
         opacity: 1;
@@ -554,6 +566,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    /* 减少重绘 */
+    contain: layout style;
 }
 
 .terminal-buttons {
@@ -565,6 +579,8 @@ body {
     width: 12px;
     height: 12px;
     border-radius: 50%;
+    /* GPU 加速 */
+    transform: translateZ(0);
 }
 
 .terminal-btn.red { background: #ff5f56; }
@@ -582,26 +598,47 @@ body {
     font-family: var(--font-mono);
     font-size: 0.9rem;
     min-height: 300px;
+    /* 优化滚动和渲染 */
+    contain: layout style;
+    /* GPU 加速 */
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .terminal-line {
     margin-bottom: 0.5rem;
     display: flex;
     gap: 0.75rem;
+    /* GPU 加速 */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    /* 优化淡入动画 */
+    will-change: opacity;
 }
 
 .terminal-prompt {
     color: var(--primary-color);
     font-weight: 600;
+    /* 防止文字模糊 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .terminal-text {
     color: var(--text-primary);
+    /* 防止文字模糊 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* GPU 加速 */
+    transform: translateZ(0);
 }
 
 .terminal-output {
     color: var(--text-secondary);
     margin-left: 1.5rem;
+    /* 防止文字模糊 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .terminal-success {
@@ -613,7 +650,12 @@ body {
     width: 8px;
     height: 16px;
     background: var(--primary-color);
-    animation: blink 1s infinite;
+    /* 使用 opacity 动画代替其他属性 */
+    animation: blink 1s steps(2, start) infinite;
+    /* GPU 加速 */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: opacity;
 }
 
 @keyframes blink {
@@ -1497,6 +1539,111 @@ body {
     text-decoration: underline;
 }
 
+/* GitHub 贡献热力图 */
+.github-contribution-section {
+    margin-top: var(--spacing-xl);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-card);
+    padding: var(--spacing-xl);
+    text-align: center;
+}
+
+.contribution-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.contribution-desc {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: var(--spacing-lg);
+}
+
+.github-contribution-chart {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    overflow-x: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.contribution-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+    display: block;
+}
+
+.contribution-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: var(--spacing-md);
+}
+
+.contribution-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: var(--radius-full);
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.contribution-link:hover {
+    background: var(--primary-gradient);
+    border-color: transparent;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+    .github-contribution-section {
+        padding: var(--spacing-lg);
+    }
+    
+    .contribution-title {
+        font-size: 1.25rem;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    
+    .contribution-desc {
+        font-size: 0.875rem;
+    }
+    
+    .github-contribution-chart {
+        padding: var(--spacing-md);
+        overflow-x: scroll;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .contribution-image {
+        min-width: 600px;
+    }
+    
+    .contribution-link {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+    }
+}
+
 /* ===========================
    CTA Section
    =========================== */
@@ -2101,88 +2248,129 @@ body {
 }
 
 /* ===========================
-   Responsive Design
+   Star Button Styles
    =========================== */
-@media (max-width: 1024px) {
-    .hero-container,
-    .quick-start-content {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-xl);
-    }
-    
-    .hero-visual {
-        order: -1;
-    }
-    
-    .footer-content {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.star-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
 }
 
+.star-button:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+.star-button.starred {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 193, 7, 0.15));
+    border-color: rgba(255, 215, 0, 0.4);
+    color: #ffd700;
+}
+
+.star-button.starred:hover {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 193, 7, 0.2));
+    border-color: rgba(255, 215, 0, 0.6);
+}
+
+.star-icon {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+}
+
+.star-button:hover .star-icon {
+    transform: scale(1.1);
+}
+
+.star-button.starred .star-icon {
+    animation: starPulse 0.5s ease;
+}
+
+@keyframes starPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+}
+
+.star-count {
+    font-weight: 700;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* 移动端 Star 按钮优化 */
 @media (max-width: 768px) {
-    .nav-links {
-        display: none;
+    .star-button {
+        padding: 6px 12px;
+        font-size: 13px;
     }
     
-    .mobile-menu-toggle {
-        display: flex;
-    }
-    
-    .hero-title {
-        font-size: 2.5rem;
-    }
-    
-    .section-title {
-        font-size: 2rem;
-    }
-    
-    .hero-actions {
-        flex-direction: column;
-    }
-    
-    .cta-title {
-        font-size: 2rem;
-    }
-    
-    .cta-actions {
-        flex-direction: column;
-    }
-    
-    .footer-content {
-        grid-template-columns: 1fr;
-    }
-    
-    .footer-bottom {
-        flex-direction: column;
-        gap: var(--spacing-md);
-        text-align: center;
-    }
-    
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-    
-    .modal-content-large {
-        max-width: 95%;
+    .star-icon {
+        width: 14px;
+        height: 14px;
     }
 }
 
-@media (max-width: 480px) {
-    .container {
-        padding: 0 var(--spacing-md);
+/* ===========================
+   性能优化
+   =========================== */
+/* 启用 GPU 加速 */
+.terminal-window,
+.feature-card,
+.use-case-card,
+.community-card,
+.carousel-slide,
+.btn {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* 减少重绘区域 */
+.hero-background,
+.gradient-orb {
+    contain: layout style paint;
+}
+
+/* 优化滚动性能 */
+.section,
+.hero,
+.carousel-section {
+    contain: layout style;
+}
+
+/* 减少动画复杂度 */
+@media (prefers-reduced-motion: no-preference) {
+    .gradient-orb {
+        animation: float 20s infinite ease-in-out;
+    }
+}
+
+/* 禁用不必要的动画 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
     
-    .hero-title {
-        font-size: 2rem;
-    }
-    
-    .section-title {
-        font-size: 1.75rem;
-    }
-    
-    .command-box {
-        flex-direction: column;
-        align-items: flex-start;
+    .gradient-orb {
+        animation: none !important;
+        display: none;
     }
 }
 
