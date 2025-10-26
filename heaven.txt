@@ -1,12 +1,44 @@
 设置语言
 检查root
-万能安装函数
+万能安装函数（包管理器）
 确认安装
 打印欢迎
 日志文件
 打印日志
 写入计数
+//磁盘空间检测，系统信息收集，系统识别不同的安装包。
 //可拓展：错误上传服务器，检测版本号是否为官方长期支持的版本
 echo "POST DONE! Congratulation!Let me do sth important..."
+=====================================
+基础环境变量
+路径
+error函数
+检测ip地址，改国内源
+虚拟内存
+服务器管理配置开机自启等。
 
-安装Gunc,CMAKE,VIM,VCPKG,git
+
+/etc/apt/sources.list
+若检测到国外源慢，会替换为国内镜像源（阿里云、清华、腾讯等）；
+
+/etc/yum.repos.d/*.repo
+若使用 CentOS，会替换老旧的 mirror.centos.org 
+
+/etc/selinux/config
+将 SELINUX=enforcing 改为 disabled；
+
+/etc/fstab
+若无 swap，会添加 
+
+/usr/bin/xkl 这里我想写cpp然后编制之后推送二进制文件到用户的服务器
+创建启动脚本；
+
+注册 systemd 服务；
+
+/etc/localtime
+链接到 Asia/Shanghai（修改时区）。
+
+包管理器（先安装最基础的东西。）
+编译工具：g++, make, cmake
+开发库：openssl-devel, libcurl-devel, zlib-devel
+系统工具：wget, tar, unzip, cro
