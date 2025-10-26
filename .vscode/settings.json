@@ -1,0 +1,14 @@
+{
+"git.autorefresh": false,
+"git.autoRepositoryDetection": "openEditors",
+"git.statusLimit": 1000,
+"git.countBadge": "off",
+"git.decorations.enabled": false,
+"git.showProgress": false,
+"files.watcherExclude": {
+    "**/.git/**": true
+},
+"search.exclude": {
+    "**/.git": true
+}
+}
