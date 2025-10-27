@@ -296,11 +296,10 @@ linuxstudio remote sync
 
 ## 📚 文档
 
-- [安装指南](INSTALLATION_GUIDE.md) - 详细的安装步骤和说明
-- [架构设计](LinuxStudio_Architecture.md) - 系统架构和技术设计
-- [实现清单](heaven.txt) - 功能实现进度和待办事项
-- [API 文档](https://docs.linuxstudio.org/api) - API 接口文档（即将推出）
-- [用户手册](https://docs.linuxstudio.org/manual) - 完整用户手册（即将推出）
+- 📘 **[开发者完全指南](DEVELOPER_GUIDE.md)** - 安装、命令、C++ 开发、打包分发全攻略
+- 📗 **[安装指南](INSTALLATION_GUIDE.md)** - 交互式安装和场景选择详解
+- 📋 [架构设计](LinuxStudio_Architecture.md) - 系统架构和技术设计
+- 📝 [实现清单](heaven.txt) - 功能实现进度和待办事项
 
 ---
 
