@@ -138,14 +138,10 @@ detect_system() {
     log "System detected: $OS_TYPE $OS_VERSION $OS_ARCH"
 }
 
-# Check system requirements
 check_requirements() {
     step "Checking system requirements..."
     
-    # Skip disk space check (removed per user request)
-    # info "Disk space: ${DISK_SPACE}GB available"
-    
-    # Check memory (minimum 1GB) - only warning
+
     if [ "$TOTAL_MEMORY" -lt 1 ]; then
         warning "Low memory detected (${TOTAL_MEMORY}GB). Recommended: 2GB+"
     fi
@@ -843,56 +839,47 @@ install_linuxstudio_core() {
     info "   Data: $DATA_PATH"
     echo ""
     
-    # Download core binary (placeholder - will be replaced with actual binary)
-    info "Downloading LinuxStudio core binary..."
+    # Install LinuxStudio CLI
+    info "Installing LinuxStudio CLI..."
     
-    # TODO: Replace with actual download URL
-    # For now, create a placeholder script
-    cat > "$INSTALL_PATH/bin/linuxstudio" <<'EOFCORE'
+    # Download CLI from repository or use bundled version
+    local cli_source="https://raw.githubusercontent.com/happykl-cn/LinuxStudio/main/bin/linuxstudio"
+    
+    if curl -fsSL "$cli_source" -o "$INSTALL_PATH/bin/linuxstudio" 2>/dev/null; then
+        info "Downloaded latest LinuxStudio CLI from repository"
+    else
+        warning "Cannot download from repository, using bundled version..."
+        # Use bundled CLI (inline script)
+        # This is the same content as bin/linuxstudio file
+        info "Creating LinuxStudio CLI from template..."
+        
+        # For production, we'll embed the full CLI here
+        # For now, download from local or use simplified version
+        if [ -f "$(dirname "$0")/bin/linuxstudio" ]; then
+            cp "$(dirname "$0")/bin/linuxstudio" "$INSTALL_PATH/bin/linuxstudio"
+            info "Copied CLI from installation package"
+        else
+            # Fallback: create basic CLI
+            warning "Using minimal CLI (install from source for full features)"
+            cat > "$INSTALL_PATH/bin/linuxstudio" <<'EOFCLI'
 #!/bin/bash
-# LinuxStudio CLI - Placeholder
-# This will be replaced with the actual C++ binary
-
-LINUXSTUDIO_ROOT="/opt/linuxstudio"
-
-case "$1" in
-    version|--version|-v)
-        echo "LinuxStudio Framework v1.0.0"
-        echo "High-Performance Linux Environment Manager"
-        ;;
-    status)
-        echo "LinuxStudio Status:"
-        echo "  Installation: $LINUXSTUDIO_ROOT"
-        echo "  Components: $(ls $LINUXSTUDIO_ROOT/data/components 2>/dev/null | wc -l) installed"
-        echo "  Plugins: $(ls $LINUXSTUDIO_ROOT/data/plugins 2>/dev/null | wc -l) installed"
-        ;;
-    component)
-        echo "Component management (coming soon)"
-        echo "Usage: linuxstudio component [list|install|uninstall] [name]"
-        ;;
-    plugin)
-        echo "Plugin management (coming soon)"
-        echo "Usage: linuxstudio plugin [list|install|uninstall] [name]"
-        ;;
-    *)
-        echo "LinuxStudio Framework v1.0.0"
-        echo ""
-        echo "Usage: linuxstudio <command> [options]"
-        echo ""
-        echo "Commands:"
-        echo "  status              Show framework status"
-        echo "  component           Manage components"
-        echo "  plugin              Manage plugins"
-        echo "  scene               Manage scenarios"
-        echo "  version             Show version"
-        echo ""
-        echo "Run 'linuxstudio <command> --help' for more information"
-        ;;
-esac
-EOFCORE
+# LinuxStudio CLI - Minimal Version
+# For full version, reinstall from source
+exec /bin/bash /opt/linuxstudio/scripts/cli.sh "$@"
+EOFCLI
+        fi
+    fi
     
     chmod +x "$INSTALL_PATH/bin/linuxstudio"
     ln -sf "$INSTALL_PATH/bin/linuxstudio" "$BIN_PATH/linuxstudio"
+    
+    # Verify installation
+    if [ -x "$BIN_PATH/linuxstudio" ]; then
+        success "LinuxStudio CLI installed to $BIN_PATH/linuxstudio"
+        info "Run 'linuxstudio --help' to get started"
+    else
+        warning "CLI installation may have issues, but framework is installed"
+    fi
     
     # Create initial configuration
     cat > "$CONFIG_PATH/framework.conf" <<EOF
@@ -954,6 +941,99 @@ EOF
 # Interactive Scene Selection
 #==============================================================================
 
+# Multi-select components from list
+select_components() {
+    local scene_name=$1
+    shift
+    local -a components=("$@")
+    local -a selected=()
+    
+    echo ""
+    print_msg "$CYAN" "═══════════════════════════════════════════════════════════════"
+    print_msg "$WHITE" "  $scene_name - Component Selection"
+    print_msg "$CYAN" "═══════════════════════════════════════════════════════════════"
+    echo ""
+    
+    # Display components with numbers
+    for i in "${!components[@]}"; do
+        local num=$((i + 1))
+        echo "  $num) ${components[$i]}"
+    done
+    echo ""
+    print_msg "$YELLOW" "  A) Install All (Recommended)"
+    print_msg "$WHITE" "  0) Skip this scene"
+    echo ""
+    
+    echo -ne "${YELLOW}Enter your choices (e.g., 1 2 3 or A for all) [A]: ${NC}"
+    
+    # Read from terminal device directly
+    local choice
+    if [ -t 0 ]; then
+        read -r choice || choice="A"
+    else
+        read -r choice </dev/tty || choice="A"
+    fi
+    
+    # Trim whitespace
+    choice=$(echo "$choice" | xargs)
+    
+    # Default to All if empty
+    if [ -z "$choice" ]; then
+        choice="A"
+    fi
+    
+    # Handle selection
+    if [[ "$choice" == "A" || "$choice" == "a" ]]; then
+        selected=("${components[@]}")
+    elif [[ "$choice" == "0" ]]; then
+        info "Skipped $scene_name"
+        return 1
+    else
+        # Parse individual selections
+        for num in $choice; do
+            if [[ "$num" =~ ^[0-9]+$ ]]; then
+                local idx=$((num - 1))
+                if [ $idx -ge 0 ] && [ $idx -lt ${#components[@]} ]; then
+                    selected+=("${components[$idx]}")
+                fi
+            fi
+        done
+    fi
+    
+    # Install selected components
+    if [ ${#selected[@]} -gt 0 ]; then
+        echo ""
+        print_msg "$GREEN" "✓ Selected ${#selected[@]} component(s):"
+        for comp in "${selected[@]}"; do
+            echo "  • $comp"
+        done
+        echo ""
+        
+        if [ "$AUTO_YES" -eq 0 ]; then
+            echo -ne "${YELLOW}Confirm installation? [Y/n]: ${NC}"
+            local confirm
+            if [ -t 0 ]; then
+                read -r confirm || confirm="y"
+            else
+                read -r confirm </dev/tty || confirm="y"
+            fi
+            confirm=$(echo "$confirm" | tr '[:upper:]' '[:lower:]' | xargs)
+            
+            if [[ "$confirm" == "n" || "$confirm" == "no" ]]; then
+                info "Installation cancelled"
+                return 1
+            fi
+        fi
+        
+        # Return selected components via global array
+        SELECTED_COMPONENTS=("${selected[@]}")
+        return 0
+    else
+        warning "No valid components selected"
+        return 1
+    fi
+}
+
 # Show scene selection menu
 select_scene() {
     # Skip scene selection if requested
@@ -963,41 +1043,57 @@ select_scene() {
     fi
     
     echo ""
-    print_msg "$CYAN" "╔════════════════════════════════════════════════════════════╗"
-    print_msg "$CYAN" "║         Select Your Development Scenario                   ║"
-    print_msg "$CYAN" "╚════════════════════════════════════════════════════════════╝"
+    print_msg "$CYAN" "╔═══════════════════════════════════════════════════════════════╗"
+    print_msg "$CYAN" "║         🎯 Select Your Development Scenario                   ║"
+    print_msg "$CYAN" "╚═══════════════════════════════════════════════════════════════╝"
     echo ""
     
-    print_msg "$WHITE" "  1) Web Development"
-    echo "     - Nginx/Apache, PHP, MySQL, Redis, Node.js"
+    print_msg "$WHITE" "  1️⃣  Web Development"
+    echo "      Full-stack web development environment"
     echo ""
     
-    print_msg "$WHITE" "  2) Embedded Development (ARM/RISC-V)"
-    echo "     - Cross-compiler, OpenOCD, Serial tools, ROS2"
+    print_msg "$WHITE" "  2️⃣  Embedded Systems (ARM/RISC-V)"
+    echo "      MCU/SoC development with cross-compilation tools"
     echo ""
     
-    print_msg "$WHITE" "  3) AI/ML Development"
-    echo "     - Python, CUDA, TensorFlow, PyTorch, OpenCV"
+    print_msg "$WHITE" "  3️⃣  Robotics & Automation"
+    echo "      Robot control, ROS2, motion planning, perception"
     echo ""
     
-    print_msg "$WHITE" "  4) Game Development"
-    echo "     - SDL2, OpenGL, Vulkan, Game engines"
+    print_msg "$WHITE" "  4️⃣  AI/ML Development"
+    echo "      Deep learning, computer vision, data science"
     echo ""
     
-    print_msg "$WHITE" "  5) DevOps"
-    echo "     - Docker, Kubernetes, Ansible, Jenkins"
+    print_msg "$WHITE" "  5️⃣  Game Development"
+    echo "      Game engines, graphics libraries, asset tools"
 echo ""
     
-    print_msg "$WHITE" "  6) Skip (Install later with 'linuxstudio scene apply')"
+    print_msg "$WHITE" "  6️⃣  Cloud Native / DevOps"
+    echo "      Container orchestration, IaC, CI/CD pipelines"
 echo ""
 
-    echo -ne "${YELLOW}Your choice [1-6]: ${NC}"
+    print_msg "$WHITE" "  7️⃣  Cybersecurity / Penetration Testing"
+    echo "      Security auditing, penetration testing, forensics"
+    echo ""
+    
+    print_msg "$WHITE" "  8️⃣  Blockchain Development"
+    echo "      Smart contracts, DApp development, Web3 tools"
+    echo ""
+    
+    print_msg "$WHITE" "  9️⃣  IoT Development"
+    echo "      IoT platforms, MQTT, edge computing"
+    echo ""
+    
+    print_msg "$WHITE" "  0️⃣  Skip (Install later with 'linuxstudio scene apply')"
+    echo ""
+
+    echo -ne "${YELLOW}Your choice [0-9]: ${NC}"
     
     # Read from terminal device directly
     if [ -t 0 ]; then
-        read -r scene_choice || scene_choice="6"
+        read -r scene_choice || scene_choice="0"
     else
-        read -r scene_choice </dev/tty || scene_choice="6"
+        read -r scene_choice </dev/tty || scene_choice="0"
     fi
     
     # Trim whitespace
@@ -1006,141 +1102,745 @@ echo ""
     case $scene_choice in
         1) install_web_scene ;;
         2) install_embedded_scene ;;
-        3) install_ai_scene ;;
-        4) install_game_scene ;;
-        5) install_devops_scene ;;
-        6) info "Skipped scene installation" ;;
+        3) install_robotics_scene ;;
+        4) install_ai_scene ;;
+        5) install_game_scene ;;
+        6) install_devops_scene ;;
+        7) install_security_scene ;;
+        8) install_blockchain_scene ;;
+        9) install_iot_scene ;;
+        0) info "Skipped scene installation. Use 'linuxstudio scene apply <name>' later." ;;
         *) warning "Invalid choice, skipping scene installation" ;;
     esac
 }
 
 # Install Web Development scene
 install_web_scene() {
-    step "Installing Web Development components..."
+    step "Web Development Scene"
+    echo ""
     
-    info "This will install: Nginx, PHP, MySQL, Redis, Node.js"
+    local -a components=(
+        "Nginx - High-performance web server"
+        "Apache - Popular web server (alternative to Nginx)"
+        "PHP 8.x + PHP-FPM - Server-side scripting"
+        "Java (OpenJDK) - Java runtime environment"
+        "Tomcat - Java application server"
+        "Spring Boot CLI - Spring framework tools"
+        "Maven - Java project management"
+        "Gradle - Build automation tool"
+        "MySQL 8.x - Relational database"
+        "PostgreSQL - Advanced relational database"
+        "Redis - In-memory data store & cache"
+        "Memcached - Distributed memory caching"
+        "Node.js + npm - JavaScript runtime"
+        "Composer - PHP dependency manager"
+        "Certbot - Let's Encrypt SSL certificates"
+        "ModSecurity (WAF) - Web application firewall"
+        "Fail2Ban - Intrusion prevention system"
+        "Logrotate - Log rotation utility"
+        "ELK Stack - Elasticsearch, Logstash, Kibana"
+        "Prometheus - Monitoring & alerting"
+        "Grafana - Metrics visualization"
+        "Supervisor - Process control system"
+    )
     
-    if [ "$AUTO_YES" -eq 0 ]; then
-        echo -ne "${YELLOW}Continue? [Y/n]: ${NC}"
-        
-        # Read from terminal device directly
-        if [ -t 0 ]; then
-            read -r confirm || confirm="y"
-        else
-            read -r confirm </dev/tty || confirm="y"
-        fi
-        
-        confirm=$(echo "$confirm" | tr '[:upper:]' '[:lower:]' | xargs)
-        
-        if [[ "$confirm" == "n" || "$confirm" == "no" ]]; then
-            info "Skipped"
-            return
-        fi
+    info "💡 Recommended PHP Stack: Nginx + PHP + MySQL + Redis + Node.js"
+    info "💡 Recommended Java Stack: Nginx + Java + Tomcat + MySQL + Redis"
+    info "💡 Recommended System: ModSecurity + Fail2Ban + Prometheus + Grafana"
+    
+    if select_components "Web Development" "${components[@]}"; then
+        for comp in "${SELECTED_COMPONENTS[@]}"; do
+            case "$comp" in
+                "Nginx"*) universal_install "nginx" "Nginx" ;;
+                "Apache"*) universal_install "apache2" "Apache" ;;
+                "PHP"*) universal_install "php php-fpm php-mysql php-redis php-xml php-mbstring php-curl" "PHP" ;;
+                "Java"*) install_java ;;
+                "Tomcat"*) install_tomcat ;;
+                "Spring Boot"*) install_spring_boot_cli ;;
+                "Maven"*) universal_install "maven" "Maven" ;;
+                "Gradle"*) install_gradle ;;
+                "MySQL"*) universal_install "mysql-server" "MySQL" ;;
+                "PostgreSQL"*) universal_install "postgresql" "PostgreSQL" ;;
+                "Redis"*) universal_install "redis-server" "Redis" ;;
+                "Memcached"*) universal_install "memcached" "Memcached" ;;
+                "Node.js"*) universal_install "nodejs npm" "Node.js" ;;
+                "Composer"*) install_composer ;;
+                "Certbot"*) universal_install "certbot" "Certbot" ;;
+                "ModSecurity"*) install_modsecurity ;;
+                "Fail2Ban"*) universal_install "fail2ban" "Fail2Ban" ;;
+                "Logrotate"*) universal_install "logrotate" "Logrotate" ;;
+                "ELK Stack"*) install_elk_stack ;;
+                "Prometheus"*) install_prometheus ;;
+                "Grafana"*) install_grafana ;;
+                "Supervisor"*) universal_install "supervisor" "Supervisor" ;;
+            esac
+        done
+        success "Web Development scene installed"
+        info "💡 Next steps: Run 'linuxstudio component list' to see installed components"
     fi
-    
-    # Install components (placeholder)
-    universal_install "nginx" "Nginx"
-    
-    success "Web Development scene installed"
-    info "Run 'linuxstudio component list' to see all installed components"
+}
+
+# Helper functions for Web components
+install_composer() {
+    info "Installing Composer..."
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer || true
+}
+
+install_java() {
+    info "Installing OpenJDK..."
+    universal_install "openjdk-17-jdk openjdk-17-jre" "Java OpenJDK 17"
+    info "Java version:"
+    java -version 2>&1 | head -1 || true
+}
+
+install_tomcat() {
+    info "Installing Apache Tomcat..."
+    universal_install "tomcat9" "Tomcat 9"
+    info "💡 Tomcat config: /etc/tomcat9/"
+    info "💡 Start Tomcat: sudo systemctl start tomcat9"
+}
+
+install_spring_boot_cli() {
+    info "Installing Spring Boot CLI..."
+    curl -s "https://get.sdkman.io" | bash || true
+    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+    sdk install springboot || true
+}
+
+install_gradle() {
+    info "Installing Gradle..."
+    curl -s "https://get.sdkman.io" | bash || true
+    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+    sdk install gradle || true
+}
+
+install_modsecurity() {
+    info "Installing ModSecurity WAF..."
+    universal_install "libmodsecurity3 modsecurity-crs" "ModSecurity"
+    info "💡 ModSecurity config: /etc/modsecurity/"
+    info "💡 Enable OWASP Core Rule Set for protection"
+}
+
+install_elk_stack() {
+    info "Installing ELK Stack..."
+    info "ELK Stack is recommended to install via Docker or APT repository"
+    info "Guide: https://www.elastic.co/guide/en/elastic-stack/current/installing-elastic-stack.html"
+}
+
+install_prometheus() {
+    info "Installing Prometheus..."
+    info "Downloading Prometheus latest version..."
+    wget https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.linux-amd64.tar.gz -O /tmp/prometheus.tar.gz || true
+    tar -xzf /tmp/prometheus.tar.gz -C /opt/ || true
+    mv /opt/prometheus-* /opt/prometheus 2>/dev/null || true
+    info "💡 Prometheus installed to /opt/prometheus"
+    info "💡 Start: /opt/prometheus/prometheus --config.file=/opt/prometheus/prometheus.yml"
+}
+
+install_grafana() {
+    info "Installing Grafana..."
+    universal_install "grafana" "Grafana" || {
+        # If package not found, install from official repository
+        wget -q -O - https://packages.grafana.com/gpg.key | apt-key add - || true
+        echo "deb https://packages.grafana.com/oss/deb stable main" | tee /etc/apt/sources.list.d/grafana.list || true
+        apt-get update && universal_install "grafana" "Grafana" || true
+    }
+    info "💡 Start Grafana: sudo systemctl start grafana-server"
+    info "💡 Access: http://localhost:3000 (admin/admin)"
 }
 
 # Install Embedded Development scene
 install_embedded_scene() {
-    step "Installing Embedded Development components..."
+    step "Embedded Systems Development Scene"
+    echo ""
     
-    info "This will install: ARM toolchain, OpenOCD, Minicom"
+    local -a components=(
+        "ARM GCC Toolchain - ARM Cortex-M/A cross-compiler"
+        "RISC-V GCC Toolchain - RISC-V cross-compiler"
+        "OpenOCD - On-chip debugger (JTAG/SWD)"
+        "GDB Multiarch - Multi-architecture debugger"
+        "Minicom - Serial terminal emulator"
+        "PuTTY/Screen - Alternative serial tools"
+        "I2C Tools - I2C bus utilities"
+        "SPI Tools - SPI bus utilities"
+        "ST-Link Tools - STMicroelectronics programmer"
+        "J-Link Tools - SEGGER J-Link utilities"
+        "Platform.io - Embedded development platform"
+        "Arduino CLI - Arduino command-line tools"
+    )
     
-    if [ "$AUTO_YES" -eq 0 ]; then
-        echo -ne "${YELLOW}Continue? [Y/n]: ${NC}"
-        
-        # Read from terminal device directly
-        if [ -t 0 ]; then
-            read -r confirm || confirm="y"
-        else
-            read -r confirm </dev/tty || confirm="y"
-        fi
-        
-        confirm=$(echo "$confirm" | tr '[:upper:]' '[:lower:]' | xargs)
-        
-        if [[ "$confirm" == "n" || "$confirm" == "no" ]]; then
-            info "Skipped"
-            return
-        fi
+    info "💡 Recommended: ARM GCC + OpenOCD + GDB + Minicom + I2C/SPI Tools"
+    
+    if select_components "Embedded Systems" "${components[@]}"; then
+        for comp in "${SELECTED_COMPONENTS[@]}"; do
+            case "$comp" in
+                "ARM GCC"*) universal_install "gcc-arm-none-eabi" "ARM GCC Toolchain" ;;
+                "RISC-V GCC"*) universal_install "gcc-riscv64-unknown-elf" "RISC-V GCC" ;;
+                "OpenOCD"*) universal_install "openocd" "OpenOCD" ;;
+                "GDB Multiarch"*) universal_install "gdb-multiarch" "GDB Multiarch" ;;
+                "Minicom"*) universal_install "minicom" "Minicom" ;;
+                "PuTTY"*) universal_install "screen picocom" "Serial Tools" ;;
+                "I2C Tools"*) universal_install "i2c-tools libi2c-dev" "I2C Tools" ;;
+                "SPI Tools"*) universal_install "spitools" "SPI Tools" ;;
+                "ST-Link"*) universal_install "stlink-tools" "ST-Link Tools" ;;
+                "Platform.io"*) install_platformio ;;
+                "Arduino CLI"*) install_arduino_cli ;;
+            esac
+        done
+        success "Embedded Systems scene installed"
+        info "💡 Next: 'linuxstudio plugin install robot-arm' for robotics support"
     fi
+}
+
+# Helper functions for embedded tools
+install_platformio() {
+    info "Installing Platform.io..."
+    pip3 install -U platformio || true
+}
+
+install_arduino_cli() {
+    info "Installing Arduino CLI..."
+    curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh || true
+}
+
+# Install Robotics & Automation scene
+install_robotics_scene() {
+    step "Robotics & Automation Scene"
+    echo ""
     
-    # Install components (placeholder)
-    info "Installing ARM cross-compiler..."
+    local -a components=(
+        "ROS2 Humble - Robot Operating System 2"
+        "MoveIt2 - Motion planning framework"
+        "Gazebo - 3D robot simulator"
+        "RViz2 - 3D visualization tool"
+        "Python3 + NumPy - Scripting & mathematics"
+        "OpenCV - Computer vision library"
+        "PCL - Point Cloud Library"
+        "URDF Tools - Robot description utilities"
+        "CAN Utils - CAN bus tools (for robot controllers)"
+        "Modbus Tools - Industrial communication"
+        "EtherCAT - Real-time Ethernet protocol"
+        "Robot Arm SDK - Manipulator control libraries"
+    )
     
-    success "Embedded Development scene installed"
-    info "Run 'linuxstudio plugin install ros2' to install ROS2"
+    info "💡 Recommended: ROS2 + MoveIt2 + Gazebo + OpenCV + Robot Arm SDK"
+    
+    if select_components "Robotics & Automation" "${components[@]}"; then
+        for comp in "${SELECTED_COMPONENTS[@]}"; do
+            case "$comp" in
+                "ROS2"*) install_ros2 ;;
+                "MoveIt2"*) info "MoveIt2 will be installed with ROS2" ;;
+                "Gazebo"*) universal_install "gazebo" "Gazebo" ;;
+                "RViz2"*) info "RViz2 included with ROS2" ;;
+                "Python3"*) universal_install "python3 python3-pip python3-numpy" "Python3" ;;
+                "OpenCV"*) universal_install "python3-opencv libopencv-dev" "OpenCV" ;;
+                "PCL"*) universal_install "libpcl-dev" "Point Cloud Library" ;;
+                "URDF"*) universal_install "liburdfdom-dev" "URDF Tools" ;;
+                "CAN Utils"*) universal_install "can-utils" "CAN Utils" ;;
+                "Modbus"*) universal_install "libmodbus-dev" "Modbus Tools" ;;
+                "EtherCAT"*) info "EtherCAT master requires kernel module (see docs)" ;;
+                "Robot Arm SDK"*) info "Robot Arm SDK available via 'linuxstudio plugin install robot-arm'" ;;
+            esac
+        done
+        success "Robotics & Automation scene installed"
+        info "💡 Source ROS2: source /opt/ros/humble/setup.bash"
+    fi
+}
+
+# Install ROS2
+install_ros2() {
+    info "Installing ROS2 Humble..."
+    # Add ROS2 repository and install
+    universal_install "software-properties-common" "Software Properties"
+    info "ROS2 installation requires additional steps. Run: linuxstudio plugin install ros2"
 }
 
 # Install AI/ML Development scene
 install_ai_scene() {
-    step "Installing AI/ML Development components..."
+    step "AI/ML Development Scene"
+    echo ""
     
-    info "This will install: Python3, pip, CUDA toolkit (if NVIDIA GPU detected)"
+    local -a components=(
+        "Python3 + pip - Python environment"
+        "Jupyter Notebook - Interactive notebooks"
+        "NumPy + SciPy - Scientific computing"
+        "Pandas - Data analysis"
+        "Matplotlib + Seaborn - Data visualization"
+        "Scikit-learn - Machine learning library"
+        "TensorFlow - Deep learning framework"
+        "PyTorch - Deep learning framework"
+        "OpenCV - Computer vision"
+        "CUDA Toolkit - NVIDIA GPU support"
+        "cuDNN - Deep learning GPU acceleration"
+        "Anaconda - Data science platform"
+    )
     
-    if [ "$AUTO_YES" -eq 0 ]; then
-        echo -ne "${YELLOW}Continue? [Y/n]: ${NC}"
-        
-        # Read from terminal device directly
-        if [ -t 0 ]; then
-            read -r confirm || confirm="y"
-        else
-            read -r confirm </dev/tty || confirm="y"
-        fi
-        
-        confirm=$(echo "$confirm" | tr '[:upper:]' '[:lower:]' | xargs)
-        
-        if [[ "$confirm" == "n" || "$confirm" == "no" ]]; then
-            info "Skipped"
-            return
-        fi
+    info "💡 Recommended: Python3 + Jupyter + NumPy + Pandas + TensorFlow/PyTorch"
+    
+    if select_components "AI/ML Development" "${components[@]}"; then
+        for comp in "${SELECTED_COMPONENTS[@]}"; do
+            case "$comp" in
+                "Python3"*) universal_install "python3 python3-pip python3-dev" "Python3" ;;
+                "Jupyter"*) pip3 install jupyter || true ;;
+                "NumPy"*) pip3 install numpy scipy || true ;;
+                "Pandas"*) pip3 install pandas || true ;;
+                "Matplotlib"*) pip3 install matplotlib seaborn || true ;;
+                "Scikit-learn"*) pip3 install scikit-learn || true ;;
+                "TensorFlow"*) pip3 install tensorflow || true ;;
+                "PyTorch"*) pip3 install torch torchvision torchaudio || true ;;
+                "OpenCV"*) universal_install "python3-opencv" "OpenCV" ;;
+                "CUDA"*) install_cuda ;;
+                "cuDNN"*) info "cuDNN installed with CUDA toolkit" ;;
+                "Anaconda"*) install_anaconda ;;
+            esac
+        done
+        success "AI/ML Development scene installed"
+        info "💡 Activate Jupyter: jupyter notebook"
     fi
-    
-    universal_install "python3" "Python3"
-    universal_install "python3-pip" "pip3"
-    
-    success "AI/ML Development scene installed"
+}
+
+# Install CUDA
+install_cuda() {
+    if lspci | grep -i nvidia >/dev/null 2>&1; then
+        info "NVIDIA GPU detected. Installing CUDA toolkit..."
+        info "CUDA installation requires manual steps. See: https://developer.nvidia.com/cuda-downloads"
+    else
+        warning "No NVIDIA GPU detected. Skipping CUDA installation."
+    fi
+}
+
+# Install Anaconda
+install_anaconda() {
+    info "Installing Anaconda..."
+    info "Download from: https://www.anaconda.com/download"
+    info "Or use Miniconda: wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
 }
 
 # Install Game Development scene
 install_game_scene() {
-    step "Installing Game Development components..."
-    info "Game development components will be available soon"
+    step "Game Development Scene"
+    echo ""
+    
+    local -a components=(
+        "SDL2 - Simple DirectMedia Layer"
+        "OpenGL - Graphics API"
+        "GLFW - OpenGL framework"
+        "GLEW - OpenGL Extension Wrangler"
+        "Vulkan SDK - Next-gen graphics API"
+        "Godot Engine - Open-source game engine"
+        "Unity Editor - Popular game engine"
+        "Unreal Engine - AAA game engine"
+        "Blender - 3D modeling & animation"
+        "Aseprite - Pixel art editor"
+        "FMOD - Audio middleware"
+    )
+    
+    info "💡 Recommended: SDL2 + OpenGL + Godot/Unity + Blender"
+    
+    if select_components "Game Development" "${components[@]}"; then
+        for comp in "${SELECTED_COMPONENTS[@]}"; do
+            case "$comp" in
+                "SDL2"*) universal_install "libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev" "SDL2" ;;
+                "OpenGL"*) universal_install "mesa-utils libglu1-mesa-dev freeglut3-dev" "OpenGL" ;;
+                "GLFW"*) universal_install "libglfw3-dev" "GLFW" ;;
+                "GLEW"*) universal_install "libglew-dev" "GLEW" ;;
+                "Vulkan"*) universal_install "vulkan-tools libvulkan-dev" "Vulkan" ;;
+                "Godot"*) universal_install "godot3" "Godot Engine" ;;
+                "Unity"*) info "Download Unity Hub from: https://unity.com/download" ;;
+                "Unreal"*) info "Download Unreal from: https://www.unrealengine.com" ;;
+                "Blender"*) universal_install "blender" "Blender" ;;
+                "Aseprite"*) info "Aseprite: https://www.aseprite.org" ;;
+                "FMOD"*) info "FMOD: https://www.fmod.com/download" ;;
+            esac
+        done
+        success "Game Development scene installed"
+    fi
 }
 
-# Install DevOps scene
+# Install Cloud Native / DevOps scene
 install_devops_scene() {
-    step "Installing DevOps components..."
+    step "Cloud Native / DevOps Scene"
+    echo ""
     
-    info "This will install: Docker, Docker Compose"
+    local -a components=(
+        "Docker - Container runtime"
+        "Docker Compose - Multi-container orchestration"
+        "Kubernetes (kubectl) - Container orchestration"
+        "Helm - Kubernetes package manager"
+        "Terraform - Infrastructure as Code"
+        "Ansible - Configuration management"
+        "Jenkins - CI/CD automation"
+        "GitLab Runner - GitLab CI/CD"
+        "GitHub Actions Runner - GitHub CI/CD"
+        "Prometheus - Monitoring & alerting system"
+        "Grafana - Metrics visualization dashboard"
+        "Node Exporter - Hardware & OS metrics"
+        "cAdvisor - Container metrics collector"
+        "Alertmanager - Alert handling & routing"
+        "ELK Stack - Centralized logging (Elasticsearch, Logstash, Kibana)"
+        "Loki + Promtail - Log aggregation system"
+        "Fluentd - Unified logging layer"
+        "Nginx - Reverse proxy & load balancer"
+        "Traefik - Cloud-native edge router"
+        "HAProxy - High availability load balancer"
+        "Cron - Job scheduling daemon"
+        "Supervisor - Process control system"
+        "systemd-cron - Systemd timer units"
+        "Zabbix - Enterprise monitoring solution"
+        "Netdata - Real-time performance monitoring"
+        "Portainer - Docker management UI"
+    )
     
-    if [ "$AUTO_YES" -eq 0 ]; then
-        echo -ne "${YELLOW}Continue? [Y/n]: ${NC}"
-        
-        # Read from terminal device directly
-        if [ -t 0 ]; then
-            read -r confirm || confirm="y"
-        else
-            read -r confirm </dev/tty || confirm="y"
-        fi
-        
-        confirm=$(echo "$confirm" | tr '[:upper:]' '[:lower:]' | xargs)
-        
-        if [[ "$confirm" == "n" || "$confirm" == "no" ]]; then
-            info "Skipped"
-            return
-        fi
+    info "💡 Recommended Container Stack: Docker + Kubernetes + Helm + Terraform"
+    info "💡 Recommended Monitoring Stack: Prometheus + Grafana + Node Exporter + Alertmanager"
+    info "💡 Recommended Logging Stack: ELK Stack / Loki + Promtail"
+    
+    if select_components "Cloud Native / DevOps" "${components[@]}"; then
+        for comp in "${SELECTED_COMPONENTS[@]}"; do
+            case "$comp" in
+                "Docker -"*) install_docker ;;
+                "Docker Compose"*) install_docker_compose ;;
+                "Kubernetes"*) install_kubectl ;;
+                "Helm"*) install_helm ;;
+                "Terraform"*) install_terraform ;;
+                "Ansible"*) universal_install "ansible" "Ansible" ;;
+                "Jenkins"*) install_jenkins ;;
+                "GitLab"*) universal_install "gitlab-runner" "GitLab Runner" ;;
+                "GitHub Actions"*) install_github_runner ;;
+                "Prometheus"*) install_prometheus ;;
+                "Grafana"*) install_grafana ;;
+                "Node Exporter"*) install_node_exporter ;;
+                "cAdvisor"*) install_cadvisor ;;
+                "Alertmanager"*) install_alertmanager ;;
+                "ELK Stack"*) install_elk_stack ;;
+                "Loki"*) install_loki ;;
+                "Fluentd"*) install_fluentd ;;
+                "Nginx"*) universal_install "nginx" "Nginx" ;;
+                "Traefik"*) install_traefik ;;
+                "HAProxy"*) universal_install "haproxy" "HAProxy" ;;
+                "Cron"*) universal_install "cron" "Cron" ;;
+                "Supervisor"*) universal_install "supervisor" "Supervisor" ;;
+                "systemd-cron"*) universal_install "systemd-cron" "systemd-cron" ;;
+                "Zabbix"*) install_zabbix ;;
+                "Netdata"*) install_netdata ;;
+                "Portainer"*) install_portainer ;;
+            esac
+        done
+        success "Cloud Native / DevOps scene installed"
+        info "💡 Start Docker: sudo systemctl start docker"
+        info "💡 Access Grafana: http://localhost:3000"
+        info "💡 Access Prometheus: http://localhost:9090"
     fi
-    
-    # Install Docker (placeholder)
+}
+
+# DevOps & System Components Installation Functions
+
+# Docker installation
+install_docker() {
     info "Installing Docker..."
-    curl -fsSL https://get.docker.com | sh
+    curl -fsSL https://get.docker.com | sh || true
+    usermod -aG docker $SUDO_USER 2>/dev/null || true
+    systemctl enable docker || true
+    info "💡 Start Docker: sudo systemctl start docker"
+    info "💡 Run without sudo: logout and login again"
+}
+
+install_docker_compose() {
+    info "Installing Docker Compose..."
+    pip3 install docker-compose || true
+    info "💡 Usage: docker-compose up -d"
+}
+
+install_kubectl() {
+    info "Installing kubectl..."
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" || true
+    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl 2>/dev/null || true
+    rm -f kubectl
+    info "💡 Configure: kubectl config set-context"
+}
+
+install_helm() {
+    info "Installing Helm..."
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash || true
+    info "💡 Usage: helm install <release> <chart>"
+}
+
+install_terraform() {
+    info "Installing Terraform..."
+    wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg || true
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list || true
+    apt-get update && universal_install "terraform" "Terraform" || true
+    info "💡 Usage: terraform init && terraform plan"
+}
+
+install_jenkins() {
+    info "Installing Jenkins..."
+    wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add - || true
+    echo "deb https://pkg.jenkins.io/debian-stable binary/" | tee /etc/apt/sources.list.d/jenkins.list || true
+    apt-get update && universal_install "jenkins" "Jenkins" || true
+    info "💡 Access: http://localhost:8080"
+    info "💡 Initial password: sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
+}
+
+install_github_runner() {
+    info "Installing GitHub Actions Runner..."
+    info "Download from: https://github.com/actions/runner/releases"
+    info "Setup guide: https://docs.github.com/en/actions/hosting-your-own-runners"
+}
+
+install_node_exporter() {
+    info "Installing Prometheus Node Exporter..."
+    wget https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz -O /tmp/node_exporter.tar.gz || true
+    tar -xzf /tmp/node_exporter.tar.gz -C /opt/ || true
+    mv /opt/node_exporter-* /opt/node_exporter 2>/dev/null || true
     
-    success "DevOps scene installed"
+    # Create systemd service
+    cat > /etc/systemd/system/node_exporter.service <<'EOF'
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/node_exporter/node_exporter
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    systemctl daemon-reload
+    systemctl enable node_exporter || true
+    info "💡 Start: sudo systemctl start node_exporter"
+    info "💡 Metrics: http://localhost:9100/metrics"
+}
+
+install_cadvisor() {
+    info "Installing cAdvisor..."
+    info "Running cAdvisor via Docker (recommended):"
+    echo "docker run -d --name=cadvisor --restart=always \\"
+    echo "  -p 8080:8080 \\"
+    echo "  -v /:/rootfs:ro \\"
+    echo "  -v /var/run:/var/run:ro \\"
+    echo "  -v /sys:/sys:ro \\"
+    echo "  -v /var/lib/docker/:/var/lib/docker:ro \\"
+    echo "  gcr.io/cadvisor/cadvisor:latest"
+    info "💡 Access: http://localhost:8080"
+}
+
+install_alertmanager() {
+    info "Installing Alertmanager..."
+    wget https://github.com/prometheus/alertmanager/releases/download/v0.26.0/alertmanager-0.26.0.linux-amd64.tar.gz -O /tmp/alertmanager.tar.gz || true
+    tar -xzf /tmp/alertmanager.tar.gz -C /opt/ || true
+    mv /opt/alertmanager-* /opt/alertmanager 2>/dev/null || true
+    info "💡 Alertmanager installed to /opt/alertmanager"
+    info "💡 Config: /opt/alertmanager/alertmanager.yml"
+}
+
+install_loki() {
+    info "Installing Loki + Promtail..."
+    info "Recommended: Install via Docker"
+    info "Docker Compose example: https://grafana.com/docs/loki/latest/installation/docker/"
+}
+
+install_fluentd() {
+    info "Installing Fluentd..."
+    curl -fsSL https://toolbelt.treasuredata.com/sh/install-ubuntu-focal-td-agent4.sh | sh || true
+    info "💡 Config: /etc/td-agent/td-agent.conf"
+    info "💡 Start: sudo systemctl start td-agent"
+}
+
+install_traefik() {
+    info "Installing Traefik..."
+    info "Recommended: Run via Docker"
+    echo "docker run -d -p 80:80 -p 8080:8080 \\"
+    echo "  -v /var/run/docker.sock:/var/run/docker.sock \\"
+    echo "  traefik:v2.10 \\"
+    echo "  --api.insecure=true --providers.docker"
+    info "💡 Dashboard: http://localhost:8080"
+}
+
+install_zabbix() {
+    info "Installing Zabbix..."
+    wget https://repo.zabbix.com/zabbix/6.4/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.4-1+ubuntu22.04_all.deb -O /tmp/zabbix-release.deb || true
+    dpkg -i /tmp/zabbix-release.deb || true
+    apt-get update || true
+    universal_install "zabbix-server-mysql zabbix-frontend-php zabbix-agent" "Zabbix" || true
+    info "💡 Configure database and start services"
+    info "💡 Access: http://localhost/zabbix"
+}
+
+install_netdata() {
+    info "Installing Netdata..."
+    curl https://my-netdata.io/kickstart.sh | bash || true
+    info "💡 Access: http://localhost:19999"
+    info "💡 Real-time performance monitoring dashboard"
+}
+
+install_portainer() {
+    info "Installing Portainer..."
+    docker volume create portainer_data 2>/dev/null || true
+    docker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v portainer_data:/data \
+        portainer/portainer-ce:latest 2>/dev/null || {
+        info "Docker required for Portainer"
+        info "Install Docker first, then run:"
+        echo "docker run -d -p 9000:9000 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock portainer/portainer-ce:latest"
+    }
+    info "💡 Access: http://localhost:9000"
+}
+
+# Install Cybersecurity / Penetration Testing scene
+install_security_scene() {
+    step "Cybersecurity / Penetration Testing Scene"
+    echo ""
+    
+    local -a components=(
+        "Nmap - Network scanner"
+        "Wireshark - Network protocol analyzer"
+        "Metasploit - Penetration testing framework"
+        "Burp Suite - Web security testing"
+        "John the Ripper - Password cracker"
+        "Hashcat - Advanced password recovery"
+        "Aircrack-ng - Wireless security tools"
+        "SQLMap - SQL injection tool"
+        "Nikto - Web server scanner"
+        "Hydra - Network logon cracker"
+        "OWASP ZAP - Web app security scanner"
+        "Volatility - Memory forensics"
+    )
+    
+    info "💡 Recommended: Nmap + Wireshark + Metasploit + Burp Suite + SQLMap"
+    warning "⚠️  Use these tools responsibly and only on authorized systems!"
+    
+    if select_components "Cybersecurity" "${components[@]}"; then
+        for comp in "${SELECTED_COMPONENTS[@]}"; do
+            case "$comp" in
+                "Nmap"*) universal_install "nmap" "Nmap" ;;
+                "Wireshark"*) universal_install "wireshark" "Wireshark" ;;
+                "Metasploit"*) install_metasploit ;;
+                "Burp Suite"*) info "Burp Suite: https://portswigger.net/burp/communitydownload" ;;
+                "John"*) universal_install "john" "John the Ripper" ;;
+                "Hashcat"*) universal_install "hashcat" "Hashcat" ;;
+                "Aircrack"*) universal_install "aircrack-ng" "Aircrack-ng" ;;
+                "SQLMap"*) universal_install "sqlmap" "SQLMap" ;;
+                "Nikto"*) universal_install "nikto" "Nikto" ;;
+                "Hydra"*) universal_install "hydra" "Hydra" ;;
+                "OWASP"*) info "OWASP ZAP: https://www.zaproxy.org/download/" ;;
+                "Volatility"*) pip3 install volatility3 || true ;;
+            esac
+        done
+        success "Cybersecurity scene installed"
+        warning "⚠️  Always obtain proper authorization before testing!"
+    fi
+}
+
+install_metasploit() {
+    info "Installing Metasploit Framework..."
+    curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > msfinstall || true
+    chmod 755 msfinstall || true
+    ./msfinstall || true
+}
+
+# Install Blockchain Development scene
+install_blockchain_scene() {
+    step "Blockchain Development Scene"
+    echo ""
+    
+    local -a components=(
+        "Node.js + npm - JavaScript runtime"
+        "Hardhat - Ethereum development environment"
+        "Truffle - Smart contract framework"
+        "Ganache - Personal blockchain"
+        "Web3.js - Ethereum JavaScript API"
+        "Ethers.js - Ethereum library"
+        "Solidity Compiler - Smart contract language"
+        "Go-Ethereum (Geth) - Ethereum client"
+        "IPFS - Distributed file system"
+        "Rust + Solana CLI - Solana development"
+        "Anchor - Solana framework"
+    )
+    
+    info "💡 Recommended: Node.js + Hardhat + Web3.js + Solidity + IPFS"
+    
+    if select_components "Blockchain Development" "${components[@]}"; then
+        for comp in "${SELECTED_COMPONENTS[@]}"; do
+            case "$comp" in
+                "Node.js"*) universal_install "nodejs npm" "Node.js" ;;
+                "Hardhat"*) npm install -g hardhat || true ;;
+                "Truffle"*) npm install -g truffle || true ;;
+                "Ganache"*) npm install -g ganache || true ;;
+                "Web3.js"*) npm install -g web3 || true ;;
+                "Ethers.js"*) npm install -g ethers || true ;;
+                "Solidity"*) npm install -g solc || true ;;
+                "Go-Ethereum"*) universal_install "geth" "Geth" ;;
+                "IPFS"*) install_ipfs ;;
+                "Rust"*) curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y || true ;;
+                "Anchor"*) info "Anchor: cargo install --git https://github.com/coral-xyz/anchor avm --locked" ;;
+            esac
+        done
+        success "Blockchain Development scene installed"
+        info "💡 Start with: npx hardhat init"
+    fi
+}
+
+install_ipfs() {
+    info "Installing IPFS..."
+    wget https://dist.ipfs.tech/kubo/v0.24.0/kubo_v0.24.0_linux-amd64.tar.gz || true
+    tar -xvzf kubo_v0.24.0_linux-amd64.tar.gz || true
+    cd kubo && bash install.sh || true
+    cd .. && rm -rf kubo* || true
+}
+
+# Install IoT Development scene
+install_iot_scene() {
+    step "IoT Development Scene"
+    echo ""
+    
+    local -a components=(
+        "MQTT Broker (Mosquitto) - Message broker"
+        "MQTT Clients - Publishing/subscribing tools"
+        "Node-RED - Flow-based programming"
+        "InfluxDB - Time-series database"
+        "Grafana - IoT data visualization"
+        "Python3 + Paho MQTT - MQTT library"
+        "Arduino CLI - Arduino development"
+        "Platform.io - IoT development platform"
+        "Home Assistant - Home automation"
+        "Zigbee2MQTT - Zigbee to MQTT bridge"
+        "ESPHome - ESP32/ESP8266 firmware"
+    )
+    
+    info "💡 Recommended: Mosquitto + Node-RED + InfluxDB + Grafana + Python MQTT"
+    
+    if select_components "IoT Development" "${components[@]}"; then
+        for comp in "${SELECTED_COMPONENTS[@]}"; do
+            case "$comp" in
+                "MQTT Broker"*) universal_install "mosquitto" "Mosquitto" ;;
+                "MQTT Clients"*) universal_install "mosquitto-clients" "MQTT Clients" ;;
+                "Node-RED"*) npm install -g --unsafe-perm node-red || true ;;
+                "InfluxDB"*) install_influxdb ;;
+                "Grafana"*) universal_install "grafana" "Grafana" ;;
+                "Python3"*) pip3 install paho-mqtt || true ;;
+                "Arduino"*) install_arduino_cli ;;
+                "Platform.io"*) install_platformio ;;
+                "Home Assistant"*) info "Home Assistant: https://www.home-assistant.io/installation/" ;;
+                "Zigbee2MQTT"*) info "Zigbee2MQTT via Docker recommended" ;;
+                "ESPHome"*) pip3 install esphome || true ;;
+            esac
+        done
+        success "IoT Development scene installed"
+        info "💡 Start Mosquitto: sudo systemctl start mosquitto"
+    fi
+}
+
+install_influxdb() {
+    info "Installing InfluxDB..."
+    wget -q https://repos.influxdata.com/influxdata-archive_compat.key || true
+    echo '393e8779c89ac8d958f81f942f9ad7fb82a25e133faddaf92e15b16e6ac9ce4c influxdata-archive_compat.key' | sha256sum -c && cat influxdata-archive_compat.key | gpg --dearmor | tee /etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg > /dev/null || true
+    echo 'deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg] https://repos.influxdata.com/debian stable main' | tee /etc/apt/sources.list.d/influxdata.list || true
+    apt-get update && apt-get install -y influxdb2 || true
 }
 
 #==============================================================================

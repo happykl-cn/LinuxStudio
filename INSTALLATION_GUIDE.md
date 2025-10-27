@@ -159,25 +159,292 @@ bash heaven.sh --version
 
 ### 9. 场景选择（交互式）
 
-选择你的开发场景：
+LinuxStudio 提供多种专业开发场景，每个场景包含精选的开发工具和组件。选择场景后，您可以自定义安装所需的组件。
 
-#### 1️⃣ Web 开发
-安装：Nginx, PHP, MySQL, Redis, Node.js
+#### 🎯 可用场景
 
-#### 2️⃣ 嵌入式开发（ARM/RISC-V）
-安装：ARM 交叉编译器, OpenOCD, Minicom, 串口工具
+##### 1️⃣ Web Development（Web 开发）
+完整的全栈 Web 开发环境，支持 PHP、Java、Node.js 技术栈
 
-#### 3️⃣ AI/ML 开发
-安装：Python3, pip, CUDA toolkit, TensorFlow, PyTorch
+**可选组件**：
 
-#### 4️⃣ 游戏开发
-安装：SDL2, OpenGL, Vulkan（即将推出）
+**Web 服务器**：
+- Nginx - 高性能 Web 服务器
+- Apache - 流行的 Web 服务器（Nginx 替代方案）
 
-#### 5️⃣ DevOps
-安装：Docker, Kubernetes, Ansible, Jenkins
+**编程语言与框架**：
+- PHP 8.x + PHP-FPM - 服务端脚本语言
+- Java (OpenJDK 17) - Java 运行环境
+- Tomcat - Java 应用服务器
+- Spring Boot CLI - Spring 框架工具
+- Maven - Java 项目管理工具
+- Gradle - 构建自动化工具
+- Node.js + npm - JavaScript 运行时
+- Composer - PHP 依赖管理器
 
-#### 6️⃣ 跳过
-稍后使用 `linuxstudio scene apply` 安装
+**数据库与缓存**：
+- MySQL 8.x - 关系型数据库
+- PostgreSQL - 高级关系型数据库
+- Redis - 内存数据存储与缓存
+- Memcached - 分布式内存缓存
+
+**安全与证书**：
+- Certbot - Let's Encrypt SSL 证书
+- ModSecurity (WAF) - Web 应用防火墙
+- Fail2Ban - 入侵防御系统
+
+**监控与日志**：
+- Logrotate - 日志轮转工具
+- ELK Stack - Elasticsearch, Logstash, Kibana（集中式日志）
+- Prometheus - 监控与告警系统
+- Grafana - 指标可视化面板
+
+**进程管理**：
+- Supervisor - 进程控制系统
+
+**推荐配置**：
+- PHP 栈：Nginx + PHP + MySQL + Redis + Node.js
+- Java 栈：Nginx + Java + Tomcat + MySQL + Redis
+- 系统运维：ModSecurity + Fail2Ban + Prometheus + Grafana
+
+---
+
+##### 2️⃣ Embedded Systems（嵌入式系统开发）
+MCU/SoC 开发与交叉编译工具链
+
+**可选组件**：
+- ARM GCC Toolchain - ARM Cortex-M/A 交叉编译器
+- RISC-V GCC Toolchain - RISC-V 交叉编译器
+- OpenOCD - 片上调试器（JTAG/SWD）
+- GDB Multiarch - 多架构调试器
+- Minicom - 串口终端模拟器
+- PuTTY/Screen - 替代串口工具
+- I2C Tools - I2C 总线工具
+- SPI Tools - SPI 总线工具
+- ST-Link Tools - STMicroelectronics 编程器
+- J-Link Tools - SEGGER J-Link 工具
+- Platform.io - 嵌入式开发平台
+- Arduino CLI - Arduino 命令行工具
+
+**推荐配置**：ARM GCC + OpenOCD + GDB + Minicom + I2C/SPI Tools
+
+---
+
+##### 3️⃣ Robotics & Automation（机器人与自动化）
+机器人控制、ROS2、运动规划、感知系统
+
+**可选组件**：
+- ROS2 Humble - 机器人操作系统 2
+- MoveIt2 - 运动规划框架
+- Gazebo - 3D 机器人仿真器
+- RViz2 - 3D 可视化工具
+- Python3 + NumPy - 脚本与数学计算
+- OpenCV - 计算机视觉库
+- PCL - 点云处理库
+- URDF Tools - 机器人描述工具
+- CAN Utils - CAN 总线工具（机器人控制器）
+- Modbus Tools - 工业通信协议
+- EtherCAT - 实时以太网协议
+- Robot Arm SDK - 机械臂控制库
+
+**推荐配置**：ROS2 + MoveIt2 + Gazebo + OpenCV + Robot Arm SDK
+
+**适用于**：机械臂控制、移动机器人、工业自动化、无人机开发
+
+---
+
+##### 4️⃣ AI/ML Development（人工智能/机器学习）
+深度学习、计算机视觉、数据科学
+
+**可选组件**：
+- Python3 + pip - Python 开发环境
+- Jupyter Notebook - 交互式笔记本
+- NumPy + SciPy - 科学计算
+- Pandas - 数据分析
+- Matplotlib + Seaborn - 数据可视化
+- Scikit-learn - 机器学习库
+- TensorFlow - 深度学习框架
+- PyTorch - 深度学习框架
+- OpenCV - 计算机视觉
+- CUDA Toolkit - NVIDIA GPU 支持
+- cuDNN - 深度学习 GPU 加速
+- Anaconda - 数据科学平台
+
+**推荐配置**：Python3 + Jupyter + NumPy + Pandas + TensorFlow/PyTorch
+
+---
+
+##### 5️⃣ Game Development（游戏开发）
+游戏引擎、图形库、资源工具
+
+**可选组件**：
+- SDL2 - Simple DirectMedia Layer
+- OpenGL - 图形 API
+- GLFW - OpenGL 框架
+- GLEW - OpenGL 扩展加载器
+- Vulkan SDK - 下一代图形 API
+- Godot Engine - 开源游戏引擎
+- Unity Editor - 流行游戏引擎
+- Unreal Engine - AAA 游戏引擎
+- Blender - 3D 建模与动画
+- Aseprite - 像素艺术编辑器
+- FMOD - 音频中间件
+
+**推荐配置**：SDL2 + OpenGL + Godot/Unity + Blender
+
+---
+
+##### 6️⃣ Cloud Native / DevOps（云原生 / 运维）
+容器编排、基础设施即代码、CI/CD 流水线、完整的监控与日志系统
+
+**可选组件**：
+
+**容器与编排**：
+- Docker - 容器运行时
+- Docker Compose - 多容器编排
+- Kubernetes (kubectl) - 容器编排平台
+- Helm - Kubernetes 包管理器
+- Portainer - Docker 管理 UI
+
+**基础设施即代码**：
+- Terraform - 基础设施即代码
+- Ansible - 配置管理
+
+**CI/CD 工具**：
+- Jenkins - CI/CD 自动化服务器
+- GitLab Runner - GitLab CI/CD
+- GitHub Actions Runner - GitHub CI/CD
+
+**监控与告警**：
+- Prometheus - 监控与告警系统
+- Grafana - 指标可视化面板
+- Node Exporter - 硬件与操作系统指标收集器
+- cAdvisor - 容器指标收集器
+- Alertmanager - 告警处理与路由
+- Zabbix - 企业级监控解决方案
+- Netdata - 实时性能监控面板
+
+**日志聚合**：
+- ELK Stack - Elasticsearch, Logstash, Kibana（集中式日志）
+- Loki + Promtail - 日志聚合系统
+- Fluentd - 统一日志层
+
+**负载均衡与代理**：
+- Nginx - 反向代理与负载均衡
+- Traefik - 云原生边缘路由器
+- HAProxy - 高可用负载均衡器
+
+**任务调度与进程管理**：
+- Cron - 任务调度守护进程
+- Supervisor - 进程控制系统
+- systemd-cron - Systemd 定时器单元
+
+**推荐配置**：
+- 容器栈：Docker + Kubernetes + Helm + Terraform
+- 监控栈：Prometheus + Grafana + Node Exporter + Alertmanager
+- 日志栈：ELK Stack / Loki + Promtail
+
+---
+
+##### 7️⃣ Cybersecurity / Penetration Testing（网络安全 / 渗透测试）
+安全审计、渗透测试、取证分析
+
+**可选组件**：
+- Nmap - 网络扫描器
+- Wireshark - 网络协议分析器
+- Metasploit - 渗透测试框架
+- Burp Suite - Web 安全测试
+- John the Ripper - 密码破解工具
+- Hashcat - 高级密码恢复
+- Aircrack-ng - 无线安全工具
+- SQLMap - SQL 注入工具
+- Nikto - Web 服务器扫描器
+- Hydra - 网络登录破解器
+- OWASP ZAP - Web 应用安全扫描器
+- Volatility - 内存取证工具
+
+**推荐配置**：Nmap + Wireshark + Metasploit + Burp Suite + SQLMap
+
+⚠️ **重要提示**：仅在授权系统上使用这些工具！未经授权的渗透测试是违法行为。
+
+---
+
+##### 8️⃣ Blockchain Development（区块链开发）
+智能合约、DApp 开发、Web3 工具
+
+**可选组件**：
+- Node.js + npm - JavaScript 运行时
+- Hardhat - Ethereum 开发环境
+- Truffle - 智能合约框架
+- Ganache - 个人区块链
+- Web3.js - Ethereum JavaScript API
+- Ethers.js - Ethereum 库
+- Solidity Compiler - 智能合约语言
+- Go-Ethereum (Geth) - Ethereum 客户端
+- IPFS - 分布式文件系统
+- Rust + Solana CLI - Solana 开发
+- Anchor - Solana 框架
+
+**推荐配置**：Node.js + Hardhat + Web3.js + Solidity + IPFS
+
+---
+
+##### 9️⃣ IoT Development（物联网开发）
+IoT 平台、MQTT、边缘计算
+
+**可选组件**：
+- MQTT Broker (Mosquitto) - 消息代理
+- MQTT Clients - 发布/订阅工具
+- Node-RED - 流程编程平台
+- InfluxDB - 时序数据库
+- Grafana - IoT 数据可视化
+- Python3 + Paho MQTT - MQTT 库
+- Arduino CLI - Arduino 开发
+- Platform.io - IoT 开发平台
+- Home Assistant - 家庭自动化
+- Zigbee2MQTT - Zigbee 转 MQTT 桥接
+- ESPHome - ESP32/ESP8266 固件
+
+**推荐配置**：Mosquitto + Node-RED + InfluxDB + Grafana + Python MQTT
+
+---
+
+##### 0️⃣ 跳过
+稍后使用 `linuxstudio scene apply <scene-name>` 安装
+
+---
+
+#### 📝 使用说明
+
+1. **场景选择**：安装过程中会显示场景菜单，输入数字（0-9）选择场景
+
+2. **组件选择**：选择场景后，会显示该场景的所有可用组件
+   - 输入 `A` 或 `a`：安装所有组件（推荐）
+   - 输入数字（如 `1 2 3`）：安装特定组件
+   - 输入 `0`：跳过此场景
+
+3. **示例**：
+   ```
+   Your choice [0-9]: 3
+   
+   ═══════════════════════════════════════════════════════════════
+     Robotics & Automation - Component Selection
+   ═══════════════════════════════════════════════════════════════
+   
+     1) ROS2 Humble - Robot Operating System 2
+     2) MoveIt2 - Motion planning framework
+     3) Gazebo - 3D robot simulator
+     4) OpenCV - Computer vision library
+     5) Robot Arm SDK - Manipulator control libraries
+     ...
+   
+     A) Install All (Recommended)
+     0) Skip this scene
+   
+   Enter your choices (e.g., 1 2 3 or A for all) [A]: 1 2 4 5
+   ```
+
+4. **确认安装**：选择组件后会显示确认提示，输入 `Y` 继续安装
 
 ### 10. 完成安装
 

@@ -66,66 +66,130 @@ bash heaven.sh --help
 
 ## 🎯 使用场景
 
+LinuxStudio 提供 9 大专业开发场景，每个场景包含精选组件，支持自定义选择安装。
+
 ### 1️⃣ Web 开发
 
-快速搭建 Web 开发环境：
+快速搭建全栈 Web 开发环境，支持 PHP、Java、Node.js
 
 ```bash
 linuxstudio scene apply web-development
 ```
 
-**包含组件**：
-- Nginx / Apache
-- PHP + PHP-FPM
-- MySQL / PostgreSQL
-- Redis
-- Node.js + npm
+**可选组件**：Nginx, Apache, PHP, Java, Tomcat, Spring Boot, Maven, Gradle, MySQL, PostgreSQL, Redis, Node.js, Composer, Certbot, ModSecurity (WAF), Fail2Ban, ELK Stack, Prometheus, Grafana, Supervisor  
+**推荐配置**：
+- PHP 栈：Nginx + PHP + MySQL + Redis + Node.js
+- Java 栈：Nginx + Java + Tomcat + MySQL + Redis
+- 运维栈：ModSecurity + Fail2Ban + Prometheus + Grafana
 
-### 2️⃣ 嵌入式开发
+---
 
-配置嵌入式开发工具链：
+### 2️⃣ 嵌入式系统开发
+
+MCU/SoC 开发与交叉编译工具链
 
 ```bash
 linuxstudio scene apply embedded-development
 ```
 
-**包含组件**：
-- ARM 交叉编译器
-- OpenOCD 调试器
-- Minicom 串口工具
-- I2C/SPI 工具
+**可选组件**：ARM/RISC-V GCC, OpenOCD, GDB, Minicom, I2C/SPI Tools, ST-Link, Platform.io, Arduino CLI  
+**推荐配置**：ARM GCC + OpenOCD + GDB + Minicom + I2C/SPI Tools
 
-**推荐插件**：
-- ROS2 机器人操作系统
-- OpenCV 计算机视觉库
+---
 
-### 3️⃣ AI/ML 开发
+### 3️⃣ 机器人与自动化
 
-搭建机器学习开发环境：
+机器人控制、ROS2、运动规划、机械臂开发
 
 ```bash
-linuxstudio scene apply ai-ml-development
+linuxstudio scene apply robotics
 ```
 
-**包含组件**：
-- Python3 + pip
-- CUDA Toolkit（如果检测到 NVIDIA GPU）
-- TensorFlow / PyTorch
-- Jupyter Notebook
+**可选组件**：ROS2, MoveIt2, Gazebo, RViz2, OpenCV, PCL, CAN Utils, Modbus, EtherCAT, Robot Arm SDK  
+**推荐配置**：ROS2 + MoveIt2 + Gazebo + OpenCV + Robot Arm SDK  
+**适用于**：机械臂控制、移动机器人、工业自动化、无人机
 
-### 4️⃣ DevOps
+---
 
-配置运维工具链：
+### 4️⃣ AI/ML 开发
+
+深度学习、计算机视觉、数据科学
+
+```bash
+linuxstudio scene apply ai-ml
+```
+
+**可选组件**：Python3, Jupyter, NumPy, Pandas, Matplotlib, Scikit-learn, TensorFlow, PyTorch, OpenCV, CUDA  
+**推荐配置**：Python3 + Jupyter + NumPy + Pandas + TensorFlow/PyTorch
+
+---
+
+### 5️⃣ 游戏开发
+
+游戏引擎、图形库、资源工具
+
+```bash
+linuxstudio scene apply game-dev
+```
+
+**可选组件**：SDL2, OpenGL, GLFW, Vulkan, Godot, Unity, Unreal, Blender, Aseprite  
+**推荐配置**：SDL2 + OpenGL + Godot/Unity + Blender
+
+---
+
+### 6️⃣ 云原生 / DevOps
+
+容器编排、基础设施即代码、CI/CD、监控告警、日志聚合
 
 ```bash
 linuxstudio scene apply devops
 ```
 
-**包含组件**：
-- Docker + Docker Compose
-- Kubernetes
-- Ansible
-- Jenkins
+**可选组件**：Docker, Kubernetes, Helm, Terraform, Ansible, Jenkins, GitLab Runner, GitHub Actions, Prometheus, Grafana, Node Exporter, cAdvisor, Alertmanager, ELK Stack, Loki, Fluentd, Nginx, Traefik, HAProxy, Cron, Supervisor, Zabbix, Netdata, Portainer  
+**推荐配置**：
+- 容器栈：Docker + Kubernetes + Helm + Terraform
+- 监控栈：Prometheus + Grafana + Node Exporter + Alertmanager
+- 日志栈：ELK Stack / Loki + Promtail
+
+---
+
+### 7️⃣ 网络安全 / 渗透测试
+
+安全审计、渗透测试、取证分析
+
+```bash
+linuxstudio scene apply security
+```
+
+**可选组件**：Nmap, Wireshark, Metasploit, Burp Suite, John the Ripper, Hashcat, SQLMap, OWASP ZAP  
+**推荐配置**：Nmap + Wireshark + Metasploit + Burp Suite  
+⚠️ **仅在授权系统上使用！**
+
+---
+
+### 8️⃣ 区块链开发
+
+智能合约、DApp 开发、Web3 工具
+
+```bash
+linuxstudio scene apply blockchain
+```
+
+**可选组件**：Node.js, Hardhat, Truffle, Ganache, Web3.js, Solidity, Geth, IPFS, Solana  
+**推荐配置**：Node.js + Hardhat + Web3.js + Solidity + IPFS
+
+---
+
+### 9️⃣ 物联网开发
+
+IoT 平台、MQTT、边缘计算
+
+```bash
+linuxstudio scene apply iot
+```
+
+**可选组件**：Mosquitto, Node-RED, InfluxDB, Grafana, Arduino CLI, Platform.io, ESPHome  
+**推荐配置**：Mosquitto + Node-RED + InfluxDB + Grafana
 
 ---
 
