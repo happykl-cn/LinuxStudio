@@ -16,21 +16,53 @@ jobs:
     name: Build DEB for ${{ matrix.distro }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false  # 允许其他构建继续
       matrix:
         distro: 
-          - ubuntu:18.04
           - ubuntu:20.04
           - ubuntu:22.04
-          - debian:10
+          - ubuntu:24.04
           - debian:11
+          - debian:12
     container:
       image: ${{ matrix.distro }}
     
     steps:
+      - name: Fix Debian/Ubuntu Sources
+        run: |
+          # 备份原始源
+          cp /etc/apt/sources.list /etc/apt/sources.list.bak || true
+          
+          # 对于 Debian，使用官方镜像
+          if grep -q "Debian" /etc/os-release 2>/dev/null; then
+            cat > /etc/apt/sources.list <<EOF
+          deb http://deb.debian.org/debian $(grep VERSION_CODENAME /etc/os-release | cut -d= -f2) main contrib non-free
+          deb http://deb.debian.org/debian $(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)-updates main contrib non-free
+          deb http://security.debian.org/debian-security $(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)-security main contrib non-free
+          EOF
+          fi
+          
       - name: Install Build Dependencies
         run: |
+          # 使用国内镜像加速（可选）
+          export DEBIAN_FRONTEND=noninteractive
+          
           apt-get update
-          apt-get install -y git build-essential cmake debhelper devscripts
+          apt-get install -y --no-install-recommends \
+            git \
+            build-essential \
+            cmake \
+            debhelper \
+            devscripts \
+            lsb-release \
+            ca-certificates
+          
+          # 显示版本信息
+          echo "=== System Info ==="
+          lsb_release -a || cat /etc/os-release
+          g++ --version | head -1
+          cmake --version | head -1
+          echo "==================="
       
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -81,32 +113,26 @@ jobs:
     name: Build RPM for ${{ matrix.distro }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false  # 允许其他构建继续
       matrix:
         distro:
-          - centos:7
           - rockylinux:8
           - rockylinux:9
-          - fedora:36
+          - fedora:38
+          - fedora:39
     container:
       image: ${{ matrix.distro }}
     
     steps:
-      - name: Install Build Dependencies (CentOS 7)
-        if: matrix.distro == 'centos:7'
+      - name: Install Build Dependencies
         run: |
-          yum install -y epel-release
-          yum install -y git gcc-c++ cmake3 rpm-build make
-          # 不创建 cmake 链接，让 spec 文件自动检测
-      
-      - name: Install Build Dependencies (RHEL 8/9)
-        if: matrix.distro != 'centos:7' && matrix.distro != 'fedora:36'
-        run: |
-          dnf install -y git gcc-c++ cmake rpm-build make
-      
-      - name: Install Build Dependencies (Fedora)
-        if: matrix.distro == 'fedora:36'
-        run: |
-          dnf install -y git gcc-c++ cmake rpm-build make
+          if command -v dnf &> /dev/null; then
+            # Rocky/Fedora 使用 dnf
+            dnf install -y git gcc-c++ cmake rpm-build make
+          elif command -v yum &> /dev/null; then
+            # 老版本使用 yum
+            yum install -y git gcc-c++ cmake rpm-build make
+          fi
       
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -189,22 +215,22 @@ jobs:
           cmake --version
           echo "========================"
           
-          mkdir build && cd build
+          mkdir -p build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build . -j$(nproc)
           
-          # 创建简单的 tarball（Arch 包可以后续优化）
+          # 创建简单的 tarball
           DESTDIR=pkg cmake --install .
-          cd pkg
           
           # 显示安装的文件
           echo "=== Installed Files ==="
-          find . -type f
+          find pkg -type f || true
           echo "======================="
           
+          cd pkg
           tar czf ../../${PROJECT_NAME}-arch-x86_64.tar.gz .
-          
           cd ../..
+          
           echo "=== Generated Archive ==="
           ls -lh ${PROJECT_NAME}-arch-x86_64.tar.gz
           echo "========================"

@@ -1,12 +1,24 @@
 #include "linuxstudio/logger.hpp"
 #include <ctime>
 
+#ifdef _WIN32
+    #include <io.h>
+    #define isatty _isatty
+    #define fileno _fileno
+#else
+    #include <unistd.h>
+#endif
+
 namespace LinuxStudio {
 
 Logger::Logger() 
     : minLevel_(LogLevel::INFO), useColors_(true) {
     // 检查是否支持颜色输出
-    useColors_ = isatty(fileno(stdout));
+#ifdef _WIN32
+    useColors_ = false;  // Windows 终端颜色支持较差
+#else
+    useColors_ = (isatty(fileno(stdout)) != 0);
+#endif
 }
 
 Logger::~Logger() {

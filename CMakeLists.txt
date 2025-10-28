@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.10)
 
 project(LinuxStudio 
     VERSION 1.0.0
@@ -50,8 +50,19 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src
 )
 
-# 查找依赖（可选）
+# 查找依赖
 find_package(Threads REQUIRED)
+
+# 检查 C++17 filesystem 支持
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles("
+    #include <filesystem>
+    int main() { std::filesystem::path p; return 0; }
+" HAVE_FILESYSTEM_WITHOUT_LIB)
+
+if(NOT HAVE_FILESYSTEM_WITHOUT_LIB)
+    set(NEED_FILESYSTEM_LIB TRUE)
+endif()
 
 # 源文件
 set(CORE_SOURCES
@@ -81,30 +92,14 @@ target_link_libraries(linuxstudio_core
 add_executable(xkl ${CLI_SOURCES})
 
 # 平台特定的链接库
-if(PLATFORM_LINUX)
-    # 检查是否需要 stdc++fs (GCC < 9.1)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1)
-        target_link_libraries(xkl 
-            linuxstudio_core
-            Threads::Threads
-            stdc++fs
-        )
-    else()
-        target_link_libraries(xkl 
-            linuxstudio_core
-            Threads::Threads
-        )
-    endif()
-elseif(PLATFORM_WINDOWS)
-    target_link_libraries(xkl 
-        linuxstudio_core
-        Threads::Threads
-    )
-elseif(PLATFORM_MACOS)
-    target_link_libraries(xkl 
-        linuxstudio_core
-        Threads::Threads
-    )
+target_link_libraries(xkl 
+    linuxstudio_core
+    Threads::Threads
+)
+
+# 如果需要显式链接 filesystem 库
+if(NEED_FILESYSTEM_LIB AND PLATFORM_LINUX)
+    target_link_libraries(xkl stdc++fs)
 endif()
 
 # 安装规则

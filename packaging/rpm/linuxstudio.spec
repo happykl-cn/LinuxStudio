@@ -7,11 +7,9 @@ License:        MIT
 URL:            https://linuxstudio.org
 Source0:        %{name}-%{version}.tar.gz
 
-BuildRequires:  gcc-c++ >= 7.0
-BuildRequires:  cmake >= 3.15
+BuildRequires:  gcc-c++
 BuildRequires:  make
-BuildRequires:  bash >= 5.0
-Requires:       bash >= 5.0
+Requires:       bash
 Requires:       curl
 Requires:       git
 
