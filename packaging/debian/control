@@ -1,0 +1,26 @@
+Source: linuxstudio
+Section: devel
+Priority: optional
+Maintainer: Dino Studio <support@linuxstudio.org>
+Build-Depends: debhelper (>= 12), cmake (>= 3.15), g++ (>= 7.0), libstdc++6
+Standards-Version: 4.5.0
+Homepage: https://linuxstudio.org
+Vcs-Git: https://github.com/happykl-cn/LinuxStudio.git
+Vcs-Browser: https://github.com/happykl-cn/LinuxStudio
+
+Package: linuxstudio
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, bash (>= 5.0)
+Description: High-Performance Linux Environment Manager
+ LinuxStudio is a framework for managing development environments,
+ toolchains, and multi-server deployments.
+ .
+ Features:
+  - Scene-driven component installation (Web, Robotics, AI/ML, etc.)
+  - Plugin management system (ROS2, OpenCV, PyTorch, etc.)
+  - Multi-server deployment support
+  - Cross-platform package manager integration
+  - Web-based GUI management interface
+ .
+ This package provides the xkl command-line tool and core framework.
+

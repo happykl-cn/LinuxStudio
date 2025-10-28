@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# LinuxStudio Post-Removal Script
+#
+
+set -e
+
+case "$1" in
+    purge)
+        echo "🗑️  Purging LinuxStudio data..."
+        
+        # 删除配置文件
+        rm -rf /etc/linuxstudio
+        
+        # 删除数据目录
+        rm -rf /opt/linuxstudio
+        
+        # 删除日志
+        rm -rf /var/log/linuxstudio
+        
+        # 删除符号链接
+        rm -f /usr/bin/linuxstudio
+        
+        echo "✅ LinuxStudio completely removed."
+        ;;
+        
+    remove)
+        echo "🗑️  LinuxStudio removed (configuration preserved)."
+        echo "   To completely remove, use: sudo apt-get purge linuxstudio"
+        
+        # 删除符号链接
+        rm -f /usr/bin/linuxstudio
+        ;;
+        
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        ;;
+        
+    *)
+        echo "postrm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0
+

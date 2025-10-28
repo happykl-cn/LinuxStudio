@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+# LinuxStudio Post-Installation Script
+#
+
+set -e
+
+case "$1" in
+    configure)
+        echo "📦 Configuring LinuxStudio..."
+        
+        # 创建符号链接（向后兼容）
+        if [ ! -L /usr/bin/linuxstudio ]; then
+            ln -sf /usr/bin/xkl /usr/bin/linuxstudio
+        fi
+        
+        # 设置权限
+        chmod +x /usr/bin/xkl
+        
+        # 创建配置文件（如果不存在）
+        if [ ! -f /etc/linuxstudio/config.yaml ]; then
+            mkdir -p /etc/linuxstudio
+            cat > /etc/linuxstudio/config.yaml <<'EOF'
+# LinuxStudio Configuration
+version: 1.0.0
+install_path: /opt/linuxstudio
+log_level: info
+auto_update_check: true
+EOF
+        fi
+        
+        # 初始化框架
+        if [ -x /usr/bin/xkl ]; then
+            /usr/bin/xkl init --quiet 2>/dev/null || true
+        fi
+        
+        echo ""
+        echo "╔═══════════════════════════════════════════════════════╗"
+        echo "║  ✅ LinuxStudio installed successfully!              ║"
+        echo "╚═══════════════════════════════════════════════════════╝"
+        echo ""
+        echo "📚 Quick Start:"
+        echo "   xkl --help              # Show help"
+        echo "   xkl status              # Check system status"
+        echo "   xkl scene apply web     # Apply web development scene"
+        echo "   xkl plugin list         # List available plugins"
+        echo ""
+        echo "📖 Documentation: https://docs.linuxstudio.org"
+        echo "💬 Community: https://community.linuxstudio.org"
+        echo ""
+        ;;
+        
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+        
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0
+

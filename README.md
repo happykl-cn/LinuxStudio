@@ -5,11 +5,10 @@
 ![LinuxStudio Logo](https://img.shields.io/badge/LinuxStudio-v1.0.0-blue?style=for-the-badge&logo=linux)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![C++](https://img.shields.io/badge/C++-17/20-orange?style=for-the-badge&logo=cplusplus)](https://isocpp.org/)
-[![Bash](https://img.shields.io/badge/Bash-5.0+-yellow?style=for-the-badge&logo=gnu-bash)](https://www.gnu.org/software/bash/)
 
 **高性能、模块化的 Linux 环境管理框架**
 
-[快速开始](#快速开始) • [文档](https://docs.linuxstudio.org) • [社区](https://community.linuxstudio.org) • [贡献指南](#贡献)
+[快速开始](#快速开始) • [开发者指南](DEVELOPER_GUIDE.md) • [安装详解](INSTALLATION_GUIDE.md)
 
 </div>
 
@@ -21,246 +20,136 @@
 
 ### 核心特性
 
-- 🚀 **一键部署** - `curl | bash` 即可启动交互式安装
-- 🎯 **场景驱动** - 根据使用场景智能推荐组件（Web、嵌入式、AI/ML 等）
-- 🔧 **模块化设计** - 核心框架 + 组件管理器 + 插件管理器
-- ⚡ **高性能** - 核心框架基于 C++ 实现，追求极致性能
-- 🌐 **多服务器支持** - 一个脚本可在多台服务器上并行部署
-- 🎨 **友好界面** - CLI + Web GUI 双重管理界面
+- 🚀 **一键部署** - 像安装 Docker 一样简单
+- 🎯 **场景驱动** - 9 大开发场景（Web、机器人、AI/ML 等）
+- 🔧 **插件系统** - 丰富的插件生态（ROS2、OpenCV、PyTorch...）
+- ⚡ **高性能** - C++ 核心引擎，启动速度提升 10x
+- 📦 **系统集成** - 通过 apt/yum 安装，自动更新
 
 ---
 
 ## 📦 快速开始
 
-### 一键安装
+### 方法 1：系统包管理器安装（推荐）
 
 ```bash
-curl -fsSL https://linuxstudio.org/heaven.sh | sudo bash
+# 配置仓库
+curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
+
+# 安装
+sudo apt-get install linuxstudio
 ```
 
-或使用 wget：
+### 方法 2：下载包直接安装
 
 ```bash
-wget -qO- https://linuxstudio.org/heaven.sh | sudo bash
+# Ubuntu/Debian
+wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio_1.0.0_ubuntu-22.04_amd64.deb
+sudo dpkg -i linuxstudio_*.deb
+
+# CentOS/RHEL
+wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio-1.0.0-1.el7.x86_64.rpm
+sudo rpm -ivh linuxstudio-*.rpm
 ```
 
-### 系统要求
-
-- **操作系统**：Ubuntu 18.04+, Debian 10+, CentOS 7+, Fedora 30+, Arch Linux, openSUSE
-- **内存**：至少 1GB（推荐 2GB+）
-- **权限**：需要 root/sudo 权限
-
-> **注意**：已取消磁盘空间强制检查，允许在任何容量下安装。
-
-### 安装选项
+### 方法 3：从源码编译
 
 ```bash
-# 非交互式安装
-curl -fsSL https://linuxstudio.org/heaven.sh | sudo bash -s -- -y -s
-
-# 查看帮助
-bash heaven.sh --help
+git clone https://github.com/happykl-cn/LinuxStudio.git
+cd LinuxStudio
+./build.sh
+cd build
+sudo cmake --install .
 ```
 
 ---
 
 ## 🎯 使用场景
 
-LinuxStudio 提供 9 大专业开发场景，每个场景包含精选组件，支持自定义选择安装。
-
 ### 1️⃣ Web 开发
-
-快速搭建全栈 Web 开发环境，支持 PHP、Java、Node.js
-
 ```bash
-linuxstudio scene apply web-development
+xkl scene apply web-development
 ```
+**组件**：Nginx, PHP, Java, Tomcat, MySQL, Redis, Node.js, ModSecurity(WAF), Prometheus
 
-**可选组件**：Nginx, Apache, PHP, Java, Tomcat, Spring Boot, Maven, Gradle, MySQL, PostgreSQL, Redis, Node.js, Composer, Certbot, ModSecurity (WAF), Fail2Ban, ELK Stack, Prometheus, Grafana, Supervisor  
-**推荐配置**：
-- PHP 栈：Nginx + PHP + MySQL + Redis + Node.js
-- Java 栈：Nginx + Java + Tomcat + MySQL + Redis
-- 运维栈：ModSecurity + Fail2Ban + Prometheus + Grafana
-
----
-
-### 2️⃣ 嵌入式系统开发
-
-MCU/SoC 开发与交叉编译工具链
-
+### 2️⃣ 嵌入式开发
 ```bash
-linuxstudio scene apply embedded-development
+xkl scene apply embedded
 ```
-
-**可选组件**：ARM/RISC-V GCC, OpenOCD, GDB, Minicom, I2C/SPI Tools, ST-Link, Platform.io, Arduino CLI  
-**推荐配置**：ARM GCC + OpenOCD + GDB + Minicom + I2C/SPI Tools
-
----
+**组件**：ARM/RISC-V GCC, OpenOCD, GDB, Minicom, I2C/SPI Tools
 
 ### 3️⃣ 机器人与自动化
-
-机器人控制、ROS2、运动规划、机械臂开发
-
 ```bash
-linuxstudio scene apply robotics
+xkl scene apply robotics
 ```
-
-**可选组件**：ROS2, MoveIt2, Gazebo, RViz2, OpenCV, PCL, CAN Utils, Modbus, EtherCAT, Robot Arm SDK  
-**推荐配置**：ROS2 + MoveIt2 + Gazebo + OpenCV + Robot Arm SDK  
-**适用于**：机械臂控制、移动机器人、工业自动化、无人机
-
----
+**组件**：ROS2, MoveIt2, Gazebo, OpenCV, PCL, CAN Utils, 机械臂 SDK
 
 ### 4️⃣ AI/ML 开发
-
-深度学习、计算机视觉、数据科学
-
 ```bash
-linuxstudio scene apply ai-ml
+xkl scene apply ai-ml
 ```
-
-**可选组件**：Python3, Jupyter, NumPy, Pandas, Matplotlib, Scikit-learn, TensorFlow, PyTorch, OpenCV, CUDA  
-**推荐配置**：Python3 + Jupyter + NumPy + Pandas + TensorFlow/PyTorch
-
----
+**组件**：Python, Jupyter, TensorFlow, PyTorch, CUDA, OpenCV
 
 ### 5️⃣ 游戏开发
-
-游戏引擎、图形库、资源工具
-
 ```bash
-linuxstudio scene apply game-dev
+xkl scene apply game-dev
 ```
-
-**可选组件**：SDL2, OpenGL, GLFW, Vulkan, Godot, Unity, Unreal, Blender, Aseprite  
-**推荐配置**：SDL2 + OpenGL + Godot/Unity + Blender
-
----
+**组件**：SDL2, OpenGL, Vulkan, Godot, Unity, Blender
 
 ### 6️⃣ 云原生 / DevOps
-
-容器编排、基础设施即代码、CI/CD、监控告警、日志聚合
-
 ```bash
-linuxstudio scene apply devops
+xkl scene apply devops
 ```
+**组件**：Docker, Kubernetes, Terraform, Jenkins, Prometheus, Grafana, ELK Stack
 
-**可选组件**：Docker, Kubernetes, Helm, Terraform, Ansible, Jenkins, GitLab Runner, GitHub Actions, Prometheus, Grafana, Node Exporter, cAdvisor, Alertmanager, ELK Stack, Loki, Fluentd, Nginx, Traefik, HAProxy, Cron, Supervisor, Zabbix, Netdata, Portainer  
-**推荐配置**：
-- 容器栈：Docker + Kubernetes + Helm + Terraform
-- 监控栈：Prometheus + Grafana + Node Exporter + Alertmanager
-- 日志栈：ELK Stack / Loki + Promtail
-
----
-
-### 7️⃣ 网络安全 / 渗透测试
-
-安全审计、渗透测试、取证分析
-
+### 7️⃣ 网络安全
 ```bash
-linuxstudio scene apply security
+xkl scene apply security
 ```
-
-**可选组件**：Nmap, Wireshark, Metasploit, Burp Suite, John the Ripper, Hashcat, SQLMap, OWASP ZAP  
-**推荐配置**：Nmap + Wireshark + Metasploit + Burp Suite  
-⚠️ **仅在授权系统上使用！**
-
----
+**组件**：Nmap, Wireshark, Metasploit, Burp Suite, SQLMap
 
 ### 8️⃣ 区块链开发
-
-智能合约、DApp 开发、Web3 工具
-
 ```bash
-linuxstudio scene apply blockchain
+xkl scene apply blockchain
 ```
-
-**可选组件**：Node.js, Hardhat, Truffle, Ganache, Web3.js, Solidity, Geth, IPFS, Solana  
-**推荐配置**：Node.js + Hardhat + Web3.js + Solidity + IPFS
-
----
+**组件**：Hardhat, Web3.js, Solidity, IPFS, Geth
 
 ### 9️⃣ 物联网开发
-
-IoT 平台、MQTT、边缘计算
-
 ```bash
-linuxstudio scene apply iot
+xkl scene apply iot
 ```
-
-**可选组件**：Mosquitto, Node-RED, InfluxDB, Grafana, Arduino CLI, Platform.io, ESPHome  
-**推荐配置**：Mosquitto + Node-RED + InfluxDB + Grafana
+**组件**：Mosquitto, Node-RED, InfluxDB, Grafana, Arduino CLI
 
 ---
 
-## 🔧 核心功能
+## 🔧 核心命令
 
-### 组件管理
-
+### 基础命令
 ```bash
-# 列出所有组件
-linuxstudio component list
-
-# 搜索组件
-linuxstudio component search nginx
-
-# 安装组件
-linuxstudio component install nginx
-
-# 卸载组件
-linuxstudio component uninstall nginx
-
-# 更新组件
-linuxstudio component update nginx
+xkl --version          # 查看版本
+xkl status             # 系统状态
+xkl --help             # 帮助信息
 ```
 
 ### 插件管理
-
 ```bash
-# 列出所有插件
-linuxstudio plugin list
+xkl plugin list                # 列出所有插件
+xkl plugin install ros2        # 安装 ROS2
+xkl plugin install opencv      # 安装 OpenCV
+xkl plugin uninstall ros2      # 卸载插件
+```
 
-# 安装插件
-linuxstudio plugin install ros2
-
-# 卸载插件
-linuxstudio plugin uninstall ros2
-
-# 启用/禁用插件
-linuxstudio plugin enable ros2
-linuxstudio plugin disable ros2
-
-# 配置插件
-linuxstudio plugin config ros2
+### 组件管理
+```bash
+xkl component list             # 列出组件
+xkl component install nginx    # 安装组件
+xkl component update nginx     # 更新组件
 ```
 
 ### 场景管理
-
 ```bash
-# 列出预设场景
-linuxstudio scene list
-
-# 应用场景
-linuxstudio scene apply web-development
-
-# 创建自定义场景
-linuxstudio scene create my-custom-scene
-```
-
-### 多服务器管理
-
-```bash
-# 添加远程服务器
-linuxstudio remote add user@192.168.1.100
-
-# 列出远程服务器
-linuxstudio remote list
-
-# 部署到远程服务器
-linuxstudio remote deploy user@192.168.1.100 web-development
-
-# 同步配置到所有服务器
-linuxstudio remote sync
+xkl scene list                 # 列出场景
+xkl scene apply web            # 应用场景（交互式选择组件）
 ```
 
 ---
@@ -269,7 +158,7 @@ linuxstudio remote sync
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     LinuxStudio Framework                    │
+│                   LinuxStudio Framework                      │
 ├─────────────────────────────────────────────────────────────┤
 │                                                               │
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐       │
@@ -283,126 +172,95 @@ linuxstudio remote sync
 │         ┌────────────────┴────────────────┐                 │
 │         │                                  │                 │
 │  ┌──────▼──────┐                  ┌───────▼────────┐        │
-│  │   CLI       │                  │   GUI Panel    │        │
-│  │  Interface  │                  │   (Web-based)  │        │
+│  │   CLI       │                  │   Web GUI      │        │
+│  │  Interface  │                  │  (React/Vue)   │        │
 │  └─────────────┘                  └────────────────┘        │
 │                                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-详细架构设计请参考：[LinuxStudio_Architecture.md](LinuxStudio_Architecture.md)
+---
+
+## 🛠️ 技术栈
+
+- **核心引擎**：C++17, CMake 3.15+
+- **CLI 工具**：Bash 5.0+ / C++ (xkl)
+- **打包**：DEB, RPM, AppImage
+- **CI/CD**：GitHub Actions
+- **支持平台**：Ubuntu, Debian, CentOS, Fedora, Arch Linux
 
 ---
 
 ## 📚 文档
 
-- 📘 **[开发者完全指南](DEVELOPER_GUIDE.md)** - 安装、命令、C++ 开发、打包分发全攻略
-- 📗 **[安装指南](INSTALLATION_GUIDE.md)** - 交互式安装和场景选择详解
-- 📋 [架构设计](LinuxStudio_Architecture.md) - 系统架构和技术设计
-- 📝 [实现清单](heaven.txt) - 功能实现进度和待办事项
-
----
-
-## 🛠️ 技术栈
-
-### 核心框架
-- **语言**：C++17/20
-- **构建系统**：CMake + Ninja
-- **包管理**：vcpkg
-- **并发**：C++20 协程 + 线程池
-- **日志**：spdlog
-- **JSON 解析**：nlohmann/json
-- **HTTP 客户端**：libcurl
-- **SSH 客户端**：libssh2
-
-### GUI 面板
-- **后端**：Crow / Drogon (C++ Web Framework)
-- **前端**：Vue.js 3 + TypeScript + Vite
-- **UI 组件**：Element Plus
-- **状态管理**：Pinia
-- **通信**：Axios + WebSocket
-
-### 测试
-- **单元测试**：Google Test
-- **性能测试**：Google Benchmark
-- **CI/CD**：GitHub Actions
-
----
-
-## 📊 项目状态
-
-### 最新更新 v1.0.1 🎉
-
-**性能优化版**（2025-10-26）：
-- ✅ **实时进度显示** - 显示时间/大小/速度/状态
-- ✅ **网络优化** - APT并行下载，智能缓存，超时控制
-- ✅ **自动重试** - 失败自动重试2次，可跳过继续
-- ✅ **Build Tools优化** - 显示gcc/g++/make位置
-- ✅ **vcpkg优化** - 克隆进度百分比显示
-- ✅ **命令行参数** - 支持-y/-s/--help/--version
-- ✅ **Piped输入** - 支持curl | bash
-
-### 已完成 ✅
-
-- [x] 安装脚本 (heaven.sh) - 1483行
-- [x] 系统检测和优化
-- [x] 包管理器支持（APT/YUM/Pacman/Zypper）
-- [x] 场景驱动安装
-- [x] 日志系统
-- [x] 交互式 CLI
-- [x] 实时进度显示系统
-- [x] 超时和重试机制
-
-### 进行中 🚧
-
-- [ ] C++ 核心引擎实现
-- [ ] 组件和插件注册表
-- [ ] Web GUI 面板
-- [ ] 多服务器支持
-
-### 计划中 📅
-
-- [ ] 自定义组件/插件支持
-- [ ] 版本更新机制
-- [ ] 社区市场
-- [ ] AI 智能推荐
-
-详细进度请查看：[heaven.txt](heaven.txt)
+- 📘 **[开发者指南](DEVELOPER_GUIDE.md)** - 完整开发、编译、打包、发布指南
+- 📗 **[安装指南](INSTALLATION_GUIDE.md)** - 详细安装步骤和场景选择
 
 ---
 
 ## 🤝 贡献
 
-我们欢迎所有形式的贡献！
+### 开发流程
 
-### 如何贡献
+```bash
+# 1. Fork 并克隆
+git clone https://github.com/YOUR_USERNAME/LinuxStudio.git
 
-1. Fork 本仓库
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+# 2. 创建分支
+git checkout -b feature/my-feature
+
+# 3. 开发和测试
+./build.sh
+./build/bin/xkl --version
+
+# 4. 提交
+git commit -m "feat: add new feature"
+git push origin feature/my-feature
+
+# 5. 创建 Pull Request
+```
 
 ### 代码规范
 
 - 遵循 [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
 - 使用 `clang-format` 格式化代码
-- 所有公共 API 必须有文档注释
 - 编写单元测试
 
-### 贡献者
+---
 
-感谢所有贡献者！
+## 📊 项目状态
 
-<a href="https://github.com/happykl-cn/LinuxStudio/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=happykl-cn/LinuxStudio" />
-</a>
+### 最新版本：v1.0.0
+
+- ✅ C++ 核心引擎
+- ✅ 9 大开发场景
+- ✅ 插件管理系统
+- ✅ DEB/RPM 打包
+- ✅ GitHub Actions CI/CD
+- 🚧 Web GUI（开发中）
+- 📅 社区市场（计划中）
+
+---
+
+## ⚙️ 系统要求
+
+### 运行环境
+- **操作系统**：Ubuntu 18.04+, Debian 10+, CentOS 7+, Fedora 30+
+- **内存**：1GB+（推荐 2GB+）
+- **权限**：需要 root/sudo
+
+### 编译环境（开发者）
+- **平台**：Linux（推荐）或 WSL2
+- **编译器**：GCC 7.0+ 或 Clang 6.0+
+- **构建工具**：CMake 3.15+, Make/Ninja
+
+> **Windows 用户**：推荐使用 WSL2（完整功能）或 Docker
 
 ---
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ---
 
@@ -410,41 +268,24 @@ linuxstudio remote sync
 
 - **官网**：https://linuxstudio.org
 - **文档**：https://docs.linuxstudio.org
-- **社区**：https://community.linuxstudio.org
 - **GitHub**：https://github.com/happykl-cn/LinuxStudio
 - **问题反馈**：https://github.com/happykl-cn/LinuxStudio/issues
+- **社区**：https://community.linuxstudio.org
 
 ---
 
 ## 💬 联系我们
 
 - **邮件**：support@linuxstudio.org
-- **Discord**：[加入我们的 Discord](https://discord.gg/linuxstudio)
-- **Twitter**：[@LinuxStudio](https://twitter.com/linuxstudio)
+- **Discord**：[加入我们](https://discord.gg/linuxstudio)
 - **微信公众号**：LinuxStudio
-
----
-
-## 🌟 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=happykl-cn/LinuxStudio&type=Date)](https://star-history.com/#happykl-cn/LinuxStudio&Date)
-
----
-
-## 📈 统计
-
-![GitHub stars](https://img.shields.io/github/stars/happykl-cn/LinuxStudio?style=social)
-![GitHub forks](https://img.shields.io/github/forks/happykl-cn/LinuxStudio?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/happykl-cn/LinuxStudio?style=social)
 
 ---
 
 <div align="center">
 
-**LinuxStudio - 让 Linux 环境管理更简单、更高效！** 🚀
+**LinuxStudio - 让 Linux 环境管理更简单！** 🚀
 
 Made with ❤️ by [Dino Studio](https://github.com/happykl-cn)
 
 </div>
-
-

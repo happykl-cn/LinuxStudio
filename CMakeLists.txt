@@ -6,15 +6,39 @@ project(LinuxStudio
     LANGUAGES CXX
 )
 
+# ========== 平台检测 ==========
+if(UNIX AND NOT APPLE)
+    message(STATUS "✅ Platform: Linux (Recommended)")
+    set(PLATFORM_LINUX TRUE)
+elseif(WIN32)
+    message(WARNING "⚠️  Platform: Windows (Limited Support)")
+    message(WARNING "   LinuxStudio is designed for Linux.")
+    message(WARNING "   Some features may not work correctly on Windows.")
+    message(WARNING "   Consider using WSL2 for full functionality.")
+    set(PLATFORM_WINDOWS TRUE)
+elseif(APPLE)
+    message(WARNING "⚠️  Platform: macOS (Experimental)")
+    message(WARNING "   LinuxStudio is designed for Linux.")
+    set(PLATFORM_MACOS TRUE)
+else()
+    message(FATAL_ERROR "❌ Unsupported platform")
+endif()
+
 # C++ 标准
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # 编译选项
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+elseif(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi")
+endif()
 
 # 输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -55,11 +79,25 @@ target_link_libraries(linuxstudio_core
 
 # 创建可执行文件
 add_executable(xkl ${CLI_SOURCES})
-target_link_libraries(xkl 
-    linuxstudio_core
-    Threads::Threads
-    stdc++fs  # C++17 filesystem support
-)
+
+# 平台特定的链接库
+if(PLATFORM_LINUX)
+    target_link_libraries(xkl 
+        linuxstudio_core
+        Threads::Threads
+        stdc++fs  # C++17 filesystem support
+    )
+elseif(PLATFORM_WINDOWS)
+    target_link_libraries(xkl 
+        linuxstudio_core
+        Threads::Threads
+    )
+elseif(PLATFORM_MACOS)
+    target_link_libraries(xkl 
+        linuxstudio_core
+        Threads::Threads
+    )
+endif()
 
 # 安装规则
 install(TARGETS xkl
@@ -78,10 +116,37 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/
 enable_testing()
 # add_subdirectory(tests)
 
+# ========== CPack 打包配置 ==========
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "Dino Studio")
+set(CPACK_PACKAGE_CONTACT "support@linuxstudio.org")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "High-Performance Linux Environment Manager")
+set(CPACK_PACKAGE_DESCRIPTION "LinuxStudio is a framework for managing development environments, toolchains, and multi-server deployments.")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
+
+# DEB 包配置
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Dino Studio <support@linuxstudio.org>")
+set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
+set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://linuxstudio.org")
+
+# RPM 包配置
+set(CPACK_RPM_PACKAGE_GROUP "Development/Tools")
+set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+set(CPACK_RPM_PACKAGE_URL "https://linuxstudio.org")
+set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
+
+# 包含 CPack
+include(CPack)
+
 # 打印配置信息
 message(STATUS "LinuxStudio Build Configuration:")
 message(STATUS "  Version: ${PROJECT_VERSION}")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 

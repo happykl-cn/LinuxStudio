@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# LinuxStudio Pre-Removal Script
+#
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        echo "📦 Preparing to remove LinuxStudio..."
+        
+        # 停止相关服务（如果有）
+        # systemctl stop linuxstudio 2>/dev/null || true
+        ;;
+        
+    failed-upgrade)
+        ;;
+        
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0
+

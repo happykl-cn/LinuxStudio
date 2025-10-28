@@ -4,9 +4,18 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
-#include <unistd.h>
-#include <sys/utsname.h>
-#include <sys/sysinfo.h>
+
+// 平台特定头文件
+#ifdef __linux__
+    #include <unistd.h>
+    #include <sys/utsname.h>
+    #include <sys/sysinfo.h>
+#elif _WIN32
+    #include <windows.h>
+    #pragma message("WARNING: LinuxStudio C++ version is designed for Linux. Windows support is limited.")
+#else
+    #error "Unsupported platform. LinuxStudio requires Linux or Windows."
+#endif
 
 namespace LinuxStudio {
 
@@ -51,6 +60,9 @@ bool CoreEngine::initialize() {
 SystemInfo CoreEngine::detectSystem() {
     SystemInfo info;
     
+#ifdef __linux__
+    // ========== Linux 实现 ==========
+    
     // 获取系统信息（使用 uname）
     struct utsname unameData;
     if (uname(&unameData) == 0) {
@@ -90,6 +102,43 @@ SystemInfo CoreEngine::detectSystem() {
         info.totalMemory = si.totalram / (1024 * 1024);  // 转换为 MB
         info.availableMemory = si.freeram / (1024 * 1024);
     }
+    
+#elif _WIN32
+    // ========== Windows 实现（有限支持，仅用于测试）==========
+    
+    info.osName = "Windows";
+    info.osVersion = "10/11";
+    info.architecture = "x86_64";
+    
+    // 获取 CPU 核心数
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+    info.cpuCores = static_cast<int>(sysInfo.dwNumberOfProcessors);
+    
+    // 获取内存信息
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    if (GlobalMemoryStatusEx(&memInfo)) {
+        info.totalMemory = memInfo.ullTotalPhys / (1024 * 1024);  // MB
+        info.availableMemory = memInfo.ullAvailPhys / (1024 * 1024);
+    }
+    
+    logger_->warning("Running on Windows - limited functionality!");
+    logger_->warning("For full features, please use Linux.");
+    
+#else
+    // ========== 未知平台 ==========
+    
+    info.osName = "Unknown";
+    info.osVersion = "0.0.0";
+    info.architecture = "unknown";
+    info.cpuCores = 1;
+    info.totalMemory = 0;
+    info.availableMemory = 0;
+    
+    logger_->error("Unsupported operating system!");
+    
+#endif
     
     return info;
 }

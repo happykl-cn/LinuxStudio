@@ -1,5 +1,4 @@
 #pragma once
-
 #include <string>
 #include <vector>
 #include <map>
@@ -17,13 +16,13 @@ class Logger;
  * 存储检测到的系统信息
  */
 struct SystemInfo {
-    std::string osName;           // 操作系统名称 (Ubuntu, Debian, etc.)
-    std::string osVersion;        // 版本号
-    std::string architecture;     // CPU 架构 (x86_64, arm64, etc.)
-    int cpuCores;                 // CPU 核心数
-    long long totalMemory;        // 总内存 (MB)
-    long long availableMemory;    // 可用内存 (MB)
-    std::map<std::string, std::string> installedPackages;  // 已安装包
+    std::string osName;           
+    std::string osVersion;        
+    std::string architecture;    
+    int cpuCores;                 
+    long long totalMemory;       
+    long long availableMemory;    
+    std::map<std::string, std::string> installedPackages;  
 };
 
 /**
@@ -46,11 +45,11 @@ enum class SceneType {
  * @brief 组件结构
  */
 struct Component {
-    std::string name;             // 组件名称
-    std::string version;          // 版本
-    std::string description;      // 描述
-    std::vector<std::string> dependencies;  // 依赖
-    bool installed;               // 是否已安装
+    std::string name;             
+    std::string version;          
+    std::string description;      
+    std::vector<std::string> dependencies;  
+    bool installed;              
     
     Component() : installed(false) {}
     Component(const std::string& n, const std::string& desc) 
@@ -61,11 +60,11 @@ struct Component {
  * @brief 插件结构
  */
 struct Plugin {
-    std::string name;             // 插件名称
-    std::string version;          // 版本
-    std::string description;      // 描述
-    bool enabled;                 // 是否启用
-    std::string installedAt;      // 安装时间
+    std::string name;             
+    std::string version;          
+    std::string description;      
+    bool enabled;                 
+    std::string installedAt;      
     
     Plugin() : enabled(false) {}
     Plugin(const std::string& n, const std::string& desc) 
@@ -74,21 +73,18 @@ struct Plugin {
 
 /**
  * @brief 核心引擎类
- * 单例模式，管理整个框架的核心功能
+ * 单例
  */
 class CoreEngine {
 public:
-    // 获取单例实例
     static CoreEngine& getInstance();
-    
-    // 禁用拷贝和赋值
     CoreEngine(const CoreEngine&) = delete;
     CoreEngine& operator=(const CoreEngine&) = delete;
-    
     /**
      * @brief 初始化框架
      * @return 成功返回 true
      */
+    
     bool initialize();
     
     /**

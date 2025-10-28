@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+# LinuxStudio Debian Build Rules
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	cmake . -DCMAKE_BUILD_TYPE=Release \
+	        -DCMAKE_INSTALL_PREFIX=/usr \
+	        -DCMAKE_CXX_STANDARD=17
+
+override_dh_auto_build:
+	cmake --build . -j$(shell nproc)
+
+override_dh_auto_install:
+	cmake --install . --prefix $(CURDIR)/debian/linuxstudio/usr
+	
+	# 创建必要目录
+	mkdir -p $(CURDIR)/debian/linuxstudio/opt/linuxstudio/{plugins,components,data,logs,scenes}
+	
+	# 复制辅助脚本（如果有）
+	if [ -d scripts ]; then \
+		mkdir -p $(CURDIR)/debian/linuxstudio/opt/linuxstudio/scripts; \
+		cp -r scripts/* $(CURDIR)/debian/linuxstudio/opt/linuxstudio/scripts/; \
+	fi
+
+override_dh_auto_clean:
+	rm -rf build
+	dh_auto_clean
+
