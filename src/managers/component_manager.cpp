@@ -1,5 +1,6 @@
 #include "linuxstudio/managers.hpp"
 #include "linuxstudio/core.hpp"
+#include "linuxstudio/logger.hpp"  // 添加 Logger 的完整定义
 #include <cstdlib>
 
 namespace LinuxStudio {

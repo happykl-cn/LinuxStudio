@@ -1,13 +1,20 @@
 #include "linuxstudio/managers.hpp"
 #include "linuxstudio/core.hpp"
+#include "linuxstudio/logger.hpp"  // 添加 Logger 的完整定义
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
 #include <chrono>
 #include <iomanip>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
+#ifdef _WIN32
+    #include <direct.h>
+    #include <io.h>
+    #define mkdir(path, mode) _mkdir(path)
+#else
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    #include <dirent.h>
+#endif
 
 namespace LinuxStudio {
 
