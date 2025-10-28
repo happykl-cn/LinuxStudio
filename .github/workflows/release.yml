@@ -60,7 +60,7 @@ jobs:
           mv *.deb ${PROJECT_NAME}_${{ steps.version.outputs.version }}_${DISTRO}_amd64.deb || true
       
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: deb-packages
           path: build/*.deb
@@ -124,7 +124,7 @@ jobs:
           mv *.rpm ${PROJECT_NAME}-${{ steps.version.outputs.version }}-1.${DISTRO}.x86_64.rpm || true
       
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rpm-packages
           path: build/*.rpm
@@ -157,7 +157,7 @@ jobs:
           tar czf ../../${PROJECT_NAME}-arch-x86_64.tar.gz .
       
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: arch-packages
           path: "*.tar.gz"
@@ -170,7 +170,7 @@ jobs:
     
     steps:
       - name: Download DEB Packages
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: deb-packages
       
@@ -208,7 +208,7 @@ jobs:
         uses: actions/checkout@v3
       
       - name: Download All Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       
       - name: Display Structure
         run: |
