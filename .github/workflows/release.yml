@@ -13,6 +13,11 @@ on:
         required: false
         default: 'false'
 
+# 设置权限
+permissions:
+  contents: write  # 允许创建 release
+  packages: write  # 允许上传 artifacts
+
 env:
   PROJECT_NAME: linuxstudio
   BINARY_NAME: xkl
@@ -402,10 +407,28 @@ jobs:
           发现问题？[提交 Issue](https://github.com/happykl-cn/LinuxStudio/issues)
           RELEASE_NOTES_EOF
       
+      - name: Debug Release Info
+        run: |
+          echo "=== Release Debug Info ==="
+          echo "Repository: ${{ github.repository }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Ref Type: ${{ github.ref_type }}"
+          echo "Tag Name: ${{ github.ref_name }}"
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "=========================="
+          
+          # 检查文件是否存在
+          echo "=== Files to Upload ==="
+          find . -name "*.deb" -o -name "*.rpm" -o -name "*.tar.gz" | head -20
+          echo "=========================="
+      
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           name: LinuxStudio ${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_name }}
           body_path: release_notes.md
           files: |
             **/*.deb
@@ -413,6 +436,7 @@ jobs:
             **/*.tar.gz
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
