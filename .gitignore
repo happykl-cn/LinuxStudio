@@ -1,0 +1,57 @@
+# Build directories
+build/
+bin/xkl
+*.deb
+*.rpm
+*.pkg.tar.zst
+*.AppImage
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Compiled files
+*.o
+*.so
+*.a
+*.exe
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+.DS_Store
+Thumbs.db
+
+# Package files
+*.tar.gz
+*.zip
+
+# Node modules (for web/)
+node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# Local config
+.env.local
+config.local.*
+
