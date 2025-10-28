@@ -47,6 +47,18 @@ int main(int argc, char* argv[]) {
     else if (command == "status") {
         cmdStatus();
     }
+    else if (command == "init") {
+        // 初始化命令 - 静默模式
+        bool quiet = false;
+        if (argc > 2 && std::string(argv[2]) == "--quiet") {
+            quiet = true;
+        }
+        
+        if (!quiet) {
+            std::cout << "LinuxStudio Framework initialized successfully!\n";
+        }
+        return 0;
+    }
     else if (command == "plugin") {
         if (argc < 3) {
             std::cerr << "Error: Plugin subcommand required\n";
@@ -129,6 +141,7 @@ Usage: xkl <command> [options]
    or: linuxstudio <command> [options]  (legacy)
 
 Framework Commands:
+  init                Initialize LinuxStudio framework
   status              Show framework status
   update              Update LinuxStudio framework
 

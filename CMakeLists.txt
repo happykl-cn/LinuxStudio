@@ -122,6 +122,29 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/
     DESTINATION include/linuxstudio
 )
 
+# 创建运行时目录结构
+install(DIRECTORY DESTINATION /opt/linuxstudio/plugins)
+install(DIRECTORY DESTINATION /opt/linuxstudio/components)
+install(DIRECTORY DESTINATION /opt/linuxstudio/data)
+install(DIRECTORY DESTINATION /opt/linuxstudio/logs)
+install(DIRECTORY DESTINATION /opt/linuxstudio/scenes)
+
+# 创建配置目录
+install(DIRECTORY DESTINATION /etc/linuxstudio)
+
+# 安装默认配置文件
+install(CODE "
+    set(CONFIG_FILE \"\$ENV{DESTDIR}/etc/linuxstudio/config.yaml\")
+    if(NOT EXISTS \"\${CONFIG_FILE}\")
+        file(WRITE \"\${CONFIG_FILE}\" \"# LinuxStudio Configuration
+version: 1.0.0
+install_path: /opt/linuxstudio
+log_level: info
+auto_update_check: true
+\")
+    endif()
+")
+
 # 测试（可选）
 enable_testing()
 # add_subdirectory(tests)

@@ -296,9 +296,27 @@ jobs:
       
       - name: Test File Structure
         run: |
-          test -d /opt/linuxstudio
-          test -f /etc/linuxstudio/config.yaml
-          ls -la /opt/linuxstudio
+          echo "=== Testing Directory Structure ==="
+          
+          # 检查主目录
+          if [ -d /opt/linuxstudio ]; then
+            echo "✅ /opt/linuxstudio exists"
+            ls -la /opt/linuxstudio
+          else
+            echo "❌ /opt/linuxstudio does not exist"
+            exit 1
+          fi
+          
+          # 检查配置文件
+          if [ -f /etc/linuxstudio/config.yaml ]; then
+            echo "✅ /etc/linuxstudio/config.yaml exists"
+            cat /etc/linuxstudio/config.yaml
+          else
+            echo "❌ /etc/linuxstudio/config.yaml does not exist"
+            exit 1
+          fi
+          
+          echo "=== All tests passed! ==="
   
   # ========== 创建 GitHub Release ==========
   create-release:
