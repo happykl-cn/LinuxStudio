@@ -113,11 +113,14 @@ jobs:
           cd build
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           mv *.deb ${PROJECT_NAME}_${{ steps.version.outputs.version }}_${DISTRO}_amd64.deb || true
+          
+          # 设置安全的 artifact 名称
+          echo "ARTIFACT_NAME=deb-${DISTRO}-packages" >> $GITHUB_ENV
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: deb-packages
+          name: ${{ env.ARTIFACT_NAME }}
           path: build/*.deb
   
   # ========== 构建 RPM 包 ==========
@@ -199,11 +202,14 @@ jobs:
           cd build
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           mv *.rpm ${PROJECT_NAME}-${{ steps.version.outputs.version }}-1.${DISTRO}.x86_64.rpm || true
+          
+          # 设置安全的 artifact 名称
+          echo "ARTIFACT_NAME=rpm-${DISTRO}-packages" >> $GITHUB_ENV
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rpm-packages
+          name: ${{ env.ARTIFACT_NAME }}
           path: build/*.rpm
   
   # ========== 构建 Arch Linux 包 ==========
@@ -269,7 +275,8 @@ jobs:
       - name: Download DEB Packages
         uses: actions/download-artifact@v4
         with:
-          name: deb-packages
+          pattern: deb-*-packages
+          merge-multiple: true
       
       - name: Install Package
         run: |
@@ -308,6 +315,9 @@ jobs:
       
       - name: Download All Artifacts
         uses: actions/download-artifact@v4
+        with:
+          pattern: "*-packages"
+          merge-multiple: true
       
       - name: Display Structure
         run: |
@@ -380,9 +390,9 @@ jobs:
           name: LinuxStudio ${{ steps.version.outputs.version }}
           body_path: release_notes.md
           files: |
-            deb-packages/*.deb
-            rpm-packages/*.rpm
-            arch-packages/*.tar.gz
+            **/*.deb
+            **/*.rpm
+            **/*.tar.gz
           draft: false
           prerelease: false
         env:
