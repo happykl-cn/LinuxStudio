@@ -48,10 +48,21 @@ jobs:
       
       - name: Build DEB Package
         run: |
+          # 显示构建环境信息
+          echo "=== Build Environment ==="
+          g++ --version
+          cmake --version
+          echo "========================"
+          
           mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build . -j$(nproc)
           cpack -G DEB
+          
+          # 显示生成的包
+          echo "=== Generated Packages ==="
+          ls -lh *.deb
+          echo "========================"
       
       - name: Rename Package
         run: |
@@ -85,7 +96,7 @@ jobs:
         run: |
           yum install -y epel-release
           yum install -y git gcc-c++ cmake3 rpm-build make
-          ln -sf /usr/bin/cmake3 /usr/bin/cmake
+          # 不创建 cmake 链接，让 spec 文件自动检测
       
       - name: Install Build Dependencies (RHEL 8/9)
         if: matrix.distro != 'centos:7' && matrix.distro != 'fedora:36'
@@ -112,10 +123,35 @@ jobs:
       
       - name: Build RPM Package
         run: |
+          # 显示构建环境信息
+          echo "=== Build Environment ==="
+          g++ --version || gcc --version
+          if command -v cmake3 &> /dev/null; then
+            echo "Using cmake3:"
+            cmake3 --version
+          else
+            echo "Using cmake:"
+            cmake --version
+          fi
+          echo "========================"
+          
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build . -j$(nproc)
+          
+          # 使用正确的 cmake 命令
+          if command -v cmake3 &> /dev/null; then
+            CMAKE_CMD=cmake3
+          else
+            CMAKE_CMD=cmake
+          fi
+          
+          $CMAKE_CMD .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+          $CMAKE_CMD --build . -j$(nproc)
           cpack -G RPM
+          
+          # 显示生成的包
+          echo "=== Generated Packages ==="
+          ls -lh *.rpm
+          echo "========================"
       
       - name: Rename Package
         run: |
@@ -147,6 +183,12 @@ jobs:
       
       - name: Build Package
         run: |
+          # 显示构建环境信息
+          echo "=== Build Environment ==="
+          g++ --version
+          cmake --version
+          echo "========================"
+          
           mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build . -j$(nproc)
@@ -154,7 +196,18 @@ jobs:
           # 创建简单的 tarball（Arch 包可以后续优化）
           DESTDIR=pkg cmake --install .
           cd pkg
+          
+          # 显示安装的文件
+          echo "=== Installed Files ==="
+          find . -type f
+          echo "======================="
+          
           tar czf ../../${PROJECT_NAME}-arch-x86_64.tar.gz .
+          
+          cd ../..
+          echo "=== Generated Archive ==="
+          ls -lh ${PROJECT_NAME}-arch-x86_64.tar.gz
+          echo "========================"
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

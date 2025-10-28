@@ -31,15 +31,25 @@ Features:
 %build
 mkdir -p build
 cd build
-%cmake3 -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr \
-        -DCMAKE_CXX_STANDARD=17 \
-        ..
-%make_build
+
+# 使用 cmake3 或 cmake（根据可用性）
+if command -v cmake3 &> /dev/null; then
+    CMAKE_CMD=cmake3
+else
+    CMAKE_CMD=cmake
+fi
+
+$CMAKE_CMD -DCMAKE_BUILD_TYPE=Release \
+           -DCMAKE_INSTALL_PREFIX=/usr \
+           -DCMAKE_CXX_STANDARD=17 \
+           ..
+
+# 使用 make 而不是 %make_build（CentOS 7 兼容）
+make -j$(nproc)
 
 %install
 cd build
-%make_install
+make install DESTDIR=%{buildroot}
 
 # 创建必要目录
 mkdir -p %{buildroot}/opt/linuxstudio/{plugins,components,data,logs,scenes}

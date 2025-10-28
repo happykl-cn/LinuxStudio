@@ -82,11 +82,19 @@ add_executable(xkl ${CLI_SOURCES})
 
 # 平台特定的链接库
 if(PLATFORM_LINUX)
-    target_link_libraries(xkl 
-        linuxstudio_core
-        Threads::Threads
-        stdc++fs  # C++17 filesystem support
-    )
+    # 检查是否需要 stdc++fs (GCC < 9.1)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1)
+        target_link_libraries(xkl 
+            linuxstudio_core
+            Threads::Threads
+            stdc++fs
+        )
+    else()
+        target_link_libraries(xkl 
+            linuxstudio_core
+            Threads::Threads
+        )
+    endif()
 elseif(PLATFORM_WINDOWS)
     target_link_libraries(xkl 
         linuxstudio_core
@@ -101,15 +109,22 @@ endif()
 
 # 安装规则
 install(TARGETS xkl
-    RUNTIME DESTINATION /usr/local/bin
+    RUNTIME DESTINATION bin
 )
 
 # 创建符号链接 linuxstudio -> xkl（向后兼容）
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink xkl linuxstudio WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX}/bin)")
-
+install(CODE "
+    set(SYMLINK_PATH \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/linuxstudio\")
+    set(TARGET_PATH \"xkl\")
+    if(NOT EXISTS \"\${SYMLINK_PATH}\")
+        execute_process(
+            COMMAND \${CMAKE_COMMAND} -E create_symlink \${TARGET_PATH} \${SYMLINK_PATH}
+        )
+    endif()
+")
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/
-    DESTINATION /usr/local/include/linuxstudio
+    DESTINATION include/linuxstudio
 )
 
 # 测试（可选）
