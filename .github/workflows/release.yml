@@ -223,57 +223,57 @@ jobs:
       - name: Generate Release Notes
         id: release_notes
         run: |
-          cat > release_notes.md <<'EOF'
-## LinuxStudio ${{ steps.version.outputs.version }}
-
-### 🚀 安装方法
-
-#### Debian/Ubuntu
-```bash
-# 配置仓库（推荐）
-curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
-sudo apt-get install linuxstudio
-
-# 或直接安装 DEB 包
-wget https://github.com/happykl-cn/LinuxStudio/releases/download/${{ github.ref_name }}/linuxstudio_${{ steps.version.outputs.version }}_ubuntu-22.04_amd64.deb
-sudo dpkg -i linuxstudio_*.deb
-```
-
-#### CentOS/RHEL/Rocky
-```bash
-# 配置仓库（推荐）
-curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
-sudo yum install linuxstudio
-
-# 或直接安装 RPM 包
-wget https://github.com/happykl-cn/LinuxStudio/releases/download/${{ github.ref_name }}/linuxstudio-${{ steps.version.outputs.version }}-1.rockylinux-8.x86_64.rpm
-sudo rpm -ivh linuxstudio-*.rpm
-```
-
-### ✨ 新特性
-
-- ✅ C++ 核心引擎，性能提升 10x
-- ✅ 9 大开发场景支持
-- ✅ 插件管理系统
-- ✅ 多服务器部署
-- ✅ 系统包管理器集成
-
-### 📦 包含的包
-
-- Debian/Ubuntu: 5 个
-- RHEL/CentOS: 4 个
-- Arch Linux: 1 个
-
-### 📚 文档
-
-- [开发者指南](https://github.com/happykl-cn/LinuxStudio/blob/main/DEVELOPER_GUIDE.md)
-- [安装指南](https://github.com/happykl-cn/LinuxStudio/blob/main/INSTALLATION_GUIDE.md)
-- [平台兼容性](https://github.com/happykl-cn/LinuxStudio/blob/main/PLATFORM_COMPATIBILITY.md)
-
-### 🐛 反馈
-
-发现问题？[提交 Issue](https://github.com/happykl-cn/LinuxStudio/issues)
-EOF
+          cat > release_notes.md <<'RELEASE_NOTES_EOF'
+          ## LinuxStudio ${{ steps.version.outputs.version }}
+          
+          ### 🚀 安装方法
+          
+          #### Debian/Ubuntu
+          \`\`\`bash
+          # 配置仓库（推荐）
+          curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
+          sudo apt-get install linuxstudio
+          
+          # 或直接安装 DEB 包
+          wget https://github.com/happykl-cn/LinuxStudio/releases/download/${{ github.ref_name }}/linuxstudio_${{ steps.version.outputs.version }}_ubuntu-22.04_amd64.deb
+          sudo dpkg -i linuxstudio_*.deb
+          \`\`\`
+          
+          #### CentOS/RHEL/Rocky
+          \`\`\`bash
+          # 配置仓库（推荐）
+          curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
+          sudo yum install linuxstudio
+          
+          # 或直接安装 RPM 包
+          wget https://github.com/happykl-cn/LinuxStudio/releases/download/${{ github.ref_name }}/linuxstudio-${{ steps.version.outputs.version }}-1.rockylinux-8.x86_64.rpm
+          sudo rpm -ivh linuxstudio-*.rpm
+          \`\`\`
+          
+          ### ✨ 新特性
+          
+          - ✅ C++ 核心引擎，性能提升 10x
+          - ✅ 9 大开发场景支持
+          - ✅ 插件管理系统
+          - ✅ 多服务器部署
+          - ✅ 系统包管理器集成
+          
+          ### 📦 包含的包
+          
+          - Debian/Ubuntu: 5 个
+          - RHEL/CentOS: 4 个
+          - Arch Linux: 1 个
+          
+          ### 📚 文档
+          
+          - [开发者指南](https://github.com/happykl-cn/LinuxStudio/blob/main/DEVELOPER_GUIDE.md)
+          - [安装指南](https://github.com/happykl-cn/LinuxStudio/blob/main/INSTALLATION_GUIDE.md)
+          - [平台兼容性](https://github.com/happykl-cn/LinuxStudio/blob/main/PLATFORM_COMPATIBILITY.md)
+          
+          ### 🐛 反馈
+          
+          发现问题？[提交 Issue](https://github.com/happykl-cn/LinuxStudio/issues)
+          RELEASE_NOTES_EOF
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
