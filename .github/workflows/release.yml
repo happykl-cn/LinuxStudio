@@ -1,10 +1,17 @@
-name: Build and Release
+name: Build and Release v2
 
 on:
   push:
     tags:
       - 'v*'  # 当推送 tag (如 v1.0.0) 时触发
+    branches:
+      - 'main'  # 推送到 main 分支时也触发（用于测试）
   workflow_dispatch:  # 允许手动触发
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild (ignore cache)'
+        required: false
+        default: 'false'
 
 env:
   PROJECT_NAME: linuxstudio
@@ -68,7 +75,9 @@ jobs:
           echo "==================="
       
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          clean: true  # 强制清理工作目录
       
       - name: Get Version
         id: version
@@ -139,7 +148,9 @@ jobs:
           fi
       
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          clean: true  # 强制清理工作目录
       
       - name: Get Version
         id: version
@@ -210,7 +221,9 @@ jobs:
           pacman -S --noconfirm base-devel cmake git
       
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          clean: true  # 强制清理工作目录
       
       - name: Build Package
         run: |
@@ -289,7 +302,9 @@ jobs:
     
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          clean: true  # 强制清理工作目录
       
       - name: Download All Artifacts
         uses: actions/download-artifact@v4
