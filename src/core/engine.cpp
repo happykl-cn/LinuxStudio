@@ -44,7 +44,6 @@ bool CoreEngine::initialize() {
     
     logger_->info("Initializing LinuxStudio Framework...");
     
-    // 检测系统信息
     systemInfo_ = detectSystem();
     
     logger_->success("LinuxStudio Framework initialized successfully");
@@ -61,7 +60,6 @@ SystemInfo CoreEngine::detectSystem() {
     SystemInfo info;
     
 #ifdef __linux__
-    // ========== Linux 实现 ==========
     
     // 获取系统信息（使用 uname）
     struct utsname unameData;
@@ -104,7 +102,6 @@ SystemInfo CoreEngine::detectSystem() {
     }
     
 #elif _WIN32
-    // ========== Windows 实现（有限支持，仅用于测试）==========
     
     info.osName = "Windows";
     info.osVersion = "10/11";

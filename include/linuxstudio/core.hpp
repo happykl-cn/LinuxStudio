@@ -75,6 +75,7 @@ struct Plugin {
  * @brief 核心引擎类
  * 单例
  */
+
 class CoreEngine {
 public:
     static CoreEngine& getInstance();
@@ -138,5 +139,5 @@ private:
     bool initialized_;
 };
 
-} // namespace LinuxStudio
+} 
 
