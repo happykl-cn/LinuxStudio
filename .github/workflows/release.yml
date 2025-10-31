@@ -269,9 +269,7 @@ jobs:
           - distro: fedora:39
             arch: aarch64
             platform: linux/arm64/v8
-    container:
-      image: ${{ matrix.distro }}
-      options: ${{ matrix.arch != 'aarch64' && '' || format('--platform={0}', matrix.platform) }}
+    # 不使用 container，所有构建都在主机上使用 docker run
     
     steps:
       - name: Setup QEMU (ARM only)
@@ -280,21 +278,45 @@ jobs:
         with:
           platforms: arm64
       
-      - name: Install Build Dependencies
+      - name: Setup Build Environment (x86_64)
+        if: matrix.arch == 'x86_64'
         run: |
-          if command -v dnf &> /dev/null; then
-            # Rocky/Fedora 使用 dnf
-            dnf install -y git gcc-c++ cmake rpm-build make qemu-user-static || dnf install -y git gcc-c++ cmake rpm-build make
-          elif command -v yum &> /dev/null; then
-            # 老版本使用 yum
-            yum install -y git gcc-c++ cmake rpm-build make qemu-user-static || yum install -y git gcc-c++ cmake rpm-build make
-          fi
-          
-          # 显示架构信息
-          echo "=== System Info ==="
-          uname -m
-          echo "Target Architecture: ${{ matrix.arch }}"
-          echo "==================="
+          # 在容器内安装依赖
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ matrix.distro }} \
+            bash -c "
+            if command -v dnf &> /dev/null; then
+              dnf install -y git gcc-c++ cmake rpm-build make
+            elif command -v yum &> /dev/null; then
+              yum install -y git gcc-c++ cmake rpm-build make
+            fi
+            echo '=== System Info ==='
+            uname -m
+            echo 'Target Architecture: ${{ matrix.arch }}'
+            echo '==================='
+          "
+      
+      - name: Setup Build Environment (ARM64)
+        if: matrix.arch == 'aarch64'
+        run: |
+          # 在 ARM 容器内安装依赖
+          docker run --rm --platform=linux/arm64/v8 \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ matrix.distro }} \
+            bash -c "
+            if command -v dnf &> /dev/null; then
+              dnf install -y git gcc-c++ cmake rpm-build make
+            elif command -v yum &> /dev/null; then
+              yum install -y git gcc-c++ cmake rpm-build make
+            fi
+            echo '=== System Info ==='
+            uname -m
+            echo 'Target Architecture: ${{ matrix.arch }}'
+            echo '==================='
+          "
       
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -311,45 +333,73 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
-      - name: Build RPM Package
+      - name: Build RPM Package (x86_64)
+        if: matrix.arch == 'x86_64'
         run: |
-          # 显示构建环境信息
-          echo "=== Build Environment ==="
-          uname -m
-          g++ --version || gcc --version
-          if command -v cmake3 &> /dev/null; then
-            echo "Using cmake3:"
-            cmake3 --version
-          else
-            echo "Using cmake:"
-            cmake --version
-          fi
-          echo "Target Architecture: ${{ matrix.arch }}"
-          echo "========================"
-          
-          mkdir build && cd build
-          
-          # 使用正确的 cmake 命令
-          if command -v cmake3 &> /dev/null; then
-            CMAKE_CMD=cmake3
-          else
-            CMAKE_CMD=cmake
-          fi
-          
-          # 在 ARM 容器中直接构建,不需要交叉编译
-          $CMAKE_CMD .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
-          
-          $CMAKE_CMD --build . -j$(nproc)
-          
-          # 设置 CPack 架构
-          export CPACK_RPM_PACKAGE_ARCHITECTURE="${{ matrix.arch }}"
-          cpack -G RPM
-          
-          # 显示生成的包
-          echo "=== Generated Packages ==="
-          ls -lh *.rpm
-          rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true
-          echo "========================"
+          # 在容器内构建
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ matrix.distro }} \
+            bash -c "
+            echo '=== Build Environment ===' && \
+            uname -m && \
+            g++ --version || gcc --version && \
+            if command -v cmake3 &> /dev/null; then
+              echo 'Using cmake3:' && \
+              cmake3 --version && \
+              CMAKE_CMD=cmake3
+            else
+              echo 'Using cmake:' && \
+              cmake --version && \
+              CMAKE_CMD=cmake
+            fi && \
+            echo 'Target Architecture: ${{ matrix.arch }}' && \
+            echo '========================' && \
+            mkdir -p build && cd build && \
+            \$CMAKE_CMD .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+            \$CMAKE_CMD --build . -j\$(nproc) && \
+            export CPACK_RPM_PACKAGE_ARCHITECTURE='x86_64' && \
+            cpack -G RPM && \
+            echo '=== Generated Packages ===' && \
+            ls -lh *.rpm && \
+            rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true && \
+            echo '========================'
+          "
+      
+      - name: Build RPM Package (ARM64)
+        if: matrix.arch == 'aarch64'
+        run: |
+          # 在 ARM 容器内构建
+          docker run --rm --platform=linux/arm64/v8 \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ matrix.distro }} \
+            bash -c "
+            echo '=== Build Environment ===' && \
+            uname -m && \
+            g++ --version || gcc --version && \
+            if command -v cmake3 &> /dev/null; then
+              echo 'Using cmake3:' && \
+              cmake3 --version && \
+              CMAKE_CMD=cmake3
+            else
+              echo 'Using cmake:' && \
+              cmake --version && \
+              CMAKE_CMD=cmake
+            fi && \
+            echo 'Target Architecture: ${{ matrix.arch }}' && \
+            echo '========================' && \
+            mkdir -p build && cd build && \
+            \$CMAKE_CMD .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+            \$CMAKE_CMD --build . -j\$(nproc) && \
+            export CPACK_RPM_PACKAGE_ARCHITECTURE='aarch64' && \
+            cpack -G RPM && \
+            echo '=== Generated Packages ===' && \
+            ls -lh *.rpm && \
+            rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true && \
+            echo '========================'
+          "
       
       - name: Rename Package
         run: |
@@ -372,14 +422,16 @@ jobs:
     name: Build Arch Package
     runs-on: ubuntu-latest
     timeout-minutes: 30  # 增加超时时间
-    container:
-      image: archlinux:latest
+    # 不使用 container，改用 docker run
     
     steps:
       - name: Install Dependencies
         run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel cmake git
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            archlinux:latest \
+            bash -c "pacman -Syu --noconfirm && pacman -S --noconfirm base-devel cmake git"
       
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -388,31 +440,30 @@ jobs:
       
       - name: Build Package
         run: |
-          # 显示构建环境信息
-          echo "=== Build Environment ==="
-          g++ --version
-          cmake --version
-          echo "========================"
-          
-          mkdir -p build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build . -j$(nproc)
-          
-          # 创建简单的 tarball
-          DESTDIR=pkg cmake --install .
-          
-          # 显示安装的文件
-          echo "=== Installed Files ==="
-          find pkg -type f || true
-          echo "======================="
-          
-          cd pkg
-          tar czf ../../${PROJECT_NAME}-arch-x86_64.tar.gz .
-          cd ../..
-          
-          echo "=== Generated Archive ==="
-          ls -lh ${PROJECT_NAME}-arch-x86_64.tar.gz
-          echo "========================"
+          # 在容器内构建
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            archlinux:latest \
+            bash -c "
+            echo '=== Build Environment ===' && \
+            g++ --version && \
+            cmake --version && \
+            echo '========================' && \
+            mkdir -p build && cd build && \
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+            cmake --build . -j\$(nproc) && \
+            DESTDIR=pkg cmake --install . && \
+            echo '=== Installed Files ===' && \
+            find pkg -type f || true && \
+            echo '=======================' && \
+            cd pkg && \
+            tar czf /workspace/${PROJECT_NAME}-arch-x86_64.tar.gz . && \
+            cd /workspace && \
+            echo '=== Generated Archive ===' && \
+            ls -lh ${PROJECT_NAME}-arch-x86_64.tar.gz && \
+            echo '========================'
+          "
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
