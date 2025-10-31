@@ -60,9 +60,14 @@ jobs:
             platform: linux/arm64/v8
     container:
       image: ${{ matrix.distro }}
-      options: ${{ matrix.arch == 'arm64' && '--platform=linux/arm64/v8' || '--platform=linux/amd64' }}
     
     steps:
+      - name: Setup QEMU (ARM only)
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      
       - name: Fix Debian/Ubuntu Sources
         run: |
           # 备份原始源
@@ -79,12 +84,6 @@ jobs:
             echo "=== Updated Debian sources to: ${CODENAME} ==="
           fi
           
-      - name: Setup QEMU (ARM only)
-        if: matrix.arch == 'arm64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-      
       - name: Install Build Dependencies
         run: |
           # 使用国内镜像加速（可选）
@@ -200,7 +199,7 @@ jobs:
             platform: linux/arm64/v8
     container:
       image: ${{ matrix.distro }}
-      options: ${{ matrix.arch == 'aarch64' && '--platform=linux/arm64/v8' || '--platform=linux/amd64' }}
+      options: ${{ matrix.arch != 'aarch64' && '' || format('--platform={0}', matrix.platform) }}
     
     steps:
       - name: Setup QEMU (ARM only)
