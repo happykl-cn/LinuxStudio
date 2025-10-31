@@ -9,7 +9,7 @@ Vcs-Git: https://github.com/happykl-cn/LinuxStudio.git
 Vcs-Browser: https://github.com/happykl-cn/LinuxStudio
 
 Package: linuxstudio
-Architecture: amd64
+Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, bash (>= 4.0)
 Description: High-Performance Linux Environment Manager
  LinuxStudio is a framework for managing development environments,

@@ -131,24 +131,49 @@ echo ""
 VERSION="1.0.0"
 GITHUB_RELEASE="https://github.com/happykl-cn/LinuxStudio/releases/latest/download"
 
+# 检测架构
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64|amd64)
+        ARCH_SUFFIX="amd64"
+        RPM_ARCH="x86_64"
+        ;;
+    aarch64|arm64)
+        ARCH_SUFFIX="arm64"
+        RPM_ARCH="aarch64"
+        ;;
+    *)
+        ARCH_SUFFIX="amd64"  # 默认尝试
+        RPM_ARCH="x86_64"
+        warning "Unknown architecture: $ARCH, trying default"
+        ;;
+esac
+
 case $OS in
     ubuntu)
-        PACKAGE="linuxstudio_${VERSION}_ubuntu-$(lsb_release -rs)_amd64.deb"
-        info "Downloading $PACKAGE..."
+        PACKAGE="linuxstudio_${VERSION}_ubuntu-$(lsb_release -rs)_${ARCH_SUFFIX}.deb"
+        info "Downloading $PACKAGE for architecture $ARCH..."
         if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.deb 2>/dev/null; then
             dpkg -i /tmp/linuxstudio.deb && success "LinuxStudio installed!" && exit 0
         fi
         ;;
     debian)
-        PACKAGE="linuxstudio_${VERSION}_debian-${VERSION_ID}_amd64.deb"
-        info "Downloading $PACKAGE..."
+        PACKAGE="linuxstudio_${VERSION}_debian-${VERSION_ID}_${ARCH_SUFFIX}.deb"
+        info "Downloading $PACKAGE for architecture $ARCH..."
         if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.deb 2>/dev/null; then
             dpkg -i /tmp/linuxstudio.deb && success "LinuxStudio installed!" && exit 0
         fi
         ;;
-    centos|rhel)
-        PACKAGE="linuxstudio-${VERSION}-1.el${VERSION_ID%%.*}.x86_64.rpm"
-        info "Downloading $PACKAGE..."
+    centos|rhel|rocky|almalinux)
+        PACKAGE="linuxstudio-${VERSION}-1.el${VERSION_ID%%.*}.${RPM_ARCH}.rpm"
+        info "Downloading $PACKAGE for architecture $ARCH..."
+        if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.rpm 2>/dev/null; then
+            rpm -ivh /tmp/linuxstudio.rpm && success "LinuxStudio installed!" && exit 0
+        fi
+        ;;
+    fedora)
+        PACKAGE="linuxstudio-${VERSION}-1.fedora-${VERSION_ID}.${RPM_ARCH}.rpm"
+        info "Downloading $PACKAGE for architecture $ARCH..."
         if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.rpm 2>/dev/null; then
             rpm -ivh /tmp/linuxstudio.rpm && success "LinuxStudio installed!" && exit 0
         fi

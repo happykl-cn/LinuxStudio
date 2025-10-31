@@ -123,10 +123,17 @@ curl -fsSL https://raw.githubusercontent.com/happykl-cn/LinuxStudio/main/heaven.
 
 ### 📦 Packages
 
+#### x86_64 (amd64)
 - Ubuntu 18.04, 20.04, 22.04 (.deb)
 - Debian 10, 11 (.deb)
 - CentOS 7, Rocky Linux 8, 9 (.rpm)
 - Fedora 36+ (.rpm)
+
+#### ARM64 (aarch64)
+- Ubuntu 22.04, 24.04 (.deb)
+- Debian 12 (.deb)
+- Rocky Linux 9 (.rpm)
+- Fedora 39+ (.rpm)
 
 ### 📚 Documentation
 

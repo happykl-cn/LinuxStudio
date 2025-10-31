@@ -25,20 +25,42 @@ env:
 jobs:
   # ========== 构建 Debian/Ubuntu 包 ==========
   build-deb:
-    name: Build DEB for ${{ matrix.distro }}
+    name: Build DEB for ${{ matrix.distro }} (${{ matrix.arch }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # 增加超时时间
+    timeout-minutes: 45  # 增加超时时间 (ARM 构建可能需要更长时间)
     strategy:
       fail-fast: false  # 允许其他构建继续
       matrix:
-        distro: 
-          - ubuntu:20.04
-          - ubuntu:22.04
-          - ubuntu:24.04
-          - debian:11
-          - debian:12
+        include:
+          # x86_64 (amd64) 构建
+          - distro: ubuntu:20.04
+            arch: amd64
+            platform: linux/amd64
+          - distro: ubuntu:22.04
+            arch: amd64
+            platform: linux/amd64
+          - distro: ubuntu:24.04
+            arch: amd64
+            platform: linux/amd64
+          - distro: debian:11
+            arch: amd64
+            platform: linux/amd64
+          - distro: debian:12
+            arch: amd64
+            platform: linux/amd64
+          # ARM64 (aarch64) 构建
+          - distro: ubuntu:22.04
+            arch: arm64
+            platform: linux/arm64/v8
+          - distro: ubuntu:24.04
+            arch: arm64
+            platform: linux/arm64/v8
+          - distro: debian:12
+            arch: arm64
+            platform: linux/arm64/v8
     container:
       image: ${{ matrix.distro }}
+      options: ${{ matrix.arch == 'arm64' && '--platform=linux/arm64/v8' || '' }}
     
     steps:
       - name: Fix Debian/Ubuntu Sources
@@ -57,6 +79,12 @@ jobs:
             echo "=== Updated Debian sources to: ${CODENAME} ==="
           fi
           
+      - name: Setup QEMU (ARM only)
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      
       - name: Install Build Dependencies
         run: |
           # 使用国内镜像加速（可选）
@@ -70,13 +98,16 @@ jobs:
             debhelper \
             devscripts \
             lsb-release \
-            ca-certificates
+            ca-certificates \
+            qemu-user-static || true
           
           # 显示版本信息
           echo "=== System Info ==="
           lsb_release -a || cat /etc/os-release
+          uname -m
           g++ --version | head -1
           cmake --version | head -1
+          echo "Architecture: ${{ matrix.arch }}"
           echo "==================="
       
       - name: Checkout Code
@@ -99,28 +130,38 @@ jobs:
         run: |
           # 显示构建环境信息
           echo "=== Build Environment ==="
+          uname -m
           g++ --version
           cmake --version
+          echo "Target Architecture: ${{ matrix.arch }}"
           echo "========================"
           
           mkdir build && cd build
+          
+          # 在 ARM 容器中直接构建,不需要交叉编译
           cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+          
           cmake --build . -j$(nproc)
+          
+          # 设置 CPack 架构
+          export CPACK_DEBIAN_PACKAGE_ARCHITECTURE="${{ matrix.arch }}"
           cpack -G DEB
           
           # 显示生成的包
           echo "=== Generated Packages ==="
           ls -lh *.deb
+          dpkg-deb -I *.deb | grep Architecture || true
           echo "========================"
       
       - name: Rename Package
         run: |
           cd build
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
-          mv *.deb ${PROJECT_NAME}_${{ steps.version.outputs.version }}_${DISTRO}_amd64.deb || true
+          ARCH="${{ matrix.arch }}"
+          mv *.deb ${PROJECT_NAME}_${{ steps.version.outputs.version }}_${DISTRO}_${ARCH}.deb || true
           
           # 设置安全的 artifact 名称
-          echo "ARTIFACT_NAME=deb-${DISTRO}-packages" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=deb-${DISTRO}-${ARCH}-packages" >> $GITHUB_ENV
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -130,30 +171,59 @@ jobs:
   
   # ========== 构建 RPM 包 ==========
   build-rpm:
-    name: Build RPM for ${{ matrix.distro }}
+    name: Build RPM for ${{ matrix.distro }} (${{ matrix.arch }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # 增加超时时间
+    timeout-minutes: 45  # 增加超时时间 (ARM 构建可能需要更长时间)
     strategy:
       fail-fast: false  # 允许其他构建继续
       matrix:
-        distro:
-          - rockylinux:8
-          - rockylinux:9
-          - fedora:38
-          - fedora:39
+        include:
+          # x86_64 构建
+          - distro: rockylinux:8
+            arch: x86_64
+            platform: linux/amd64
+          - distro: rockylinux:9
+            arch: x86_64
+            platform: linux/amd64
+          - distro: fedora:38
+            arch: x86_64
+            platform: linux/amd64
+          - distro: fedora:39
+            arch: x86_64
+            platform: linux/amd64
+          # ARM64 (aarch64) 构建
+          - distro: rockylinux:9
+            arch: aarch64
+            platform: linux/arm64/v8
+          - distro: fedora:39
+            arch: aarch64
+            platform: linux/arm64/v8
     container:
       image: ${{ matrix.distro }}
+      options: ${{ matrix.arch == 'aarch64' && '--platform=linux/arm64/v8' || '' }}
     
     steps:
+      - name: Setup QEMU (ARM only)
+        if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      
       - name: Install Build Dependencies
         run: |
           if command -v dnf &> /dev/null; then
             # Rocky/Fedora 使用 dnf
-            dnf install -y git gcc-c++ cmake rpm-build make
+            dnf install -y git gcc-c++ cmake rpm-build make qemu-user-static || dnf install -y git gcc-c++ cmake rpm-build make
           elif command -v yum &> /dev/null; then
             # 老版本使用 yum
-            yum install -y git gcc-c++ cmake rpm-build make
+            yum install -y git gcc-c++ cmake rpm-build make qemu-user-static || yum install -y git gcc-c++ cmake rpm-build make
           fi
+          
+          # 显示架构信息
+          echo "=== System Info ==="
+          uname -m
+          echo "Target Architecture: ${{ matrix.arch }}"
+          echo "==================="
       
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -174,6 +244,7 @@ jobs:
         run: |
           # 显示构建环境信息
           echo "=== Build Environment ==="
+          uname -m
           g++ --version || gcc --version
           if command -v cmake3 &> /dev/null; then
             echo "Using cmake3:"
@@ -182,6 +253,7 @@ jobs:
             echo "Using cmake:"
             cmake --version
           fi
+          echo "Target Architecture: ${{ matrix.arch }}"
           echo "========================"
           
           mkdir build && cd build
@@ -193,23 +265,30 @@ jobs:
             CMAKE_CMD=cmake
           fi
           
+          # 在 ARM 容器中直接构建,不需要交叉编译
           $CMAKE_CMD .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+          
           $CMAKE_CMD --build . -j$(nproc)
+          
+          # 设置 CPack 架构
+          export CPACK_RPM_PACKAGE_ARCHITECTURE="${{ matrix.arch }}"
           cpack -G RPM
           
           # 显示生成的包
           echo "=== Generated Packages ==="
           ls -lh *.rpm
+          rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true
           echo "========================"
       
       - name: Rename Package
         run: |
           cd build
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
-          mv *.rpm ${PROJECT_NAME}-${{ steps.version.outputs.version }}-1.${DISTRO}.x86_64.rpm || true
+          ARCH="${{ matrix.arch }}"
+          mv *.rpm ${PROJECT_NAME}-${{ steps.version.outputs.version }}-1.${DISTRO}.${ARCH}.rpm || true
           
           # 设置安全的 artifact 名称
-          echo "ARTIFACT_NAME=rpm-${DISTRO}-packages" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=rpm-${DISTRO}-${ARCH}-packages" >> $GITHUB_ENV
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -360,7 +439,7 @@ jobs:
           
           ### 🚀 安装方法
           
-          #### Debian/Ubuntu
+          #### Debian/Ubuntu (x86_64/amd64)
           \`\`\`bash
           # 配置仓库（推荐）
           curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
@@ -371,7 +450,18 @@ jobs:
           sudo dpkg -i linuxstudio_*.deb
           \`\`\`
           
-          #### CentOS/RHEL/Rocky
+          #### Debian/Ubuntu (ARM64/aarch64)
+          \`\`\`bash
+          # 配置仓库（推荐）
+          curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
+          sudo apt-get install linuxstudio
+          
+          # 或直接安装 DEB 包
+          wget https://github.com/happykl-cn/LinuxStudio/releases/download/${{ github.ref_name }}/linuxstudio_${{ steps.version.outputs.version }}_ubuntu-22.04_arm64.deb
+          sudo dpkg -i linuxstudio_*.deb
+          \`\`\`
+          
+          #### CentOS/RHEL/Rocky (x86_64)
           \`\`\`bash
           # 配置仓库（推荐）
           curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
@@ -379,6 +469,17 @@ jobs:
           
           # 或直接安装 RPM 包
           wget https://github.com/happykl-cn/LinuxStudio/releases/download/${{ github.ref_name }}/linuxstudio-${{ steps.version.outputs.version }}-1.rockylinux-8.x86_64.rpm
+          sudo rpm -ivh linuxstudio-*.rpm
+          \`\`\`
+          
+          #### CentOS/RHEL/Rocky (ARM64/aarch64)
+          \`\`\`bash
+          # 配置仓库（推荐）
+          curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
+          sudo yum install linuxstudio
+          
+          # 或直接安装 RPM 包
+          wget https://github.com/happykl-cn/LinuxStudio/releases/download/${{ github.ref_name }}/linuxstudio-${{ steps.version.outputs.version }}-1.rockylinux-9.aarch64.rpm
           sudo rpm -ivh linuxstudio-*.rpm
           \`\`\`
           
@@ -392,9 +493,17 @@ jobs:
           
           ### 📦 包含的包
           
-          - Debian/Ubuntu: 5 个 (20.04, 22.04, 24.04, Debian 11, 12)
-          - RHEL/Rocky/Fedora: 4 个 (Rocky 8/9, Fedora 38/39)
+          - Debian/Ubuntu (amd64): 5 个 (20.04, 22.04, 24.04, Debian 11, 12)
+          - Debian/Ubuntu (arm64): 3 个 (Ubuntu 22.04/24.04, Debian 12)
+          - RHEL/Rocky/Fedora (x86_64): 4 个 (Rocky 8/9, Fedora 38/39)
+          - RHEL/Rocky/Fedora (aarch64): 2 个 (Rocky 9, Fedora 39)
           - Arch Linux: 1 个
+          
+          ### 🏗️ ARM 架构支持
+          
+          - ✅ ARM64 (aarch64) 完整支持
+          - ✅ 适用于 Raspberry Pi 4+, Apple Silicon (通过 QEMU), ARM 服务器
+          - ✅ 所有核心功能在 ARM 平台上可用
           
           ### 📚 文档
           

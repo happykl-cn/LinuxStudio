@@ -16,6 +16,12 @@ echo -e "${GREEN}║     LinuxStudio C++ Build Script                  ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════╝${NC}"
 echo ""
 
+# 显示架构信息
+ARCH=$(uname -m)
+echo -e "${YELLOW}System Information:${NC}"
+echo "  Architecture: ${ARCH}"
+echo ""
+
 # 检查依赖
 echo -e "${YELLOW}Checking dependencies...${NC}"
 
@@ -39,9 +45,22 @@ echo -e "${YELLOW}Creating build directory...${NC}"
 mkdir -p build
 cd build
 
+# 检测架构
+ARCH=$(uname -m)
+echo -e "${YELLOW}Detected architecture: ${ARCH}${NC}"
+
 # 配置
 echo -e "${YELLOW}Configuring project...${NC}"
-cmake .. -DCMAKE_BUILD_TYPE=Release
+if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+    echo -e "${GREEN}Building for ARM64 architecture${NC}"
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_PROCESSOR=aarch64
+elif [ "$ARCH" = "x86_64" ]; then
+    echo -e "${GREEN}Building for x86_64 architecture${NC}"
+    cmake .. -DCMAKE_BUILD_TYPE=Release
+else
+    echo -e "${YELLOW}Building for architecture: ${ARCH}${NC}"
+    cmake .. -DCMAKE_BUILD_TYPE=Release
+fi
 
 # 编译
 echo -e "${YELLOW}Building project...${NC}"
