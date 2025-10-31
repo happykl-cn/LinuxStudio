@@ -58,8 +58,8 @@ jobs:
           - distro: debian:12
             arch: arm64
             platform: linux/arm64/v8
-    # 仅对 x86_64 使用 container，ARM 在主机上使用 docker run
-    container: ${{ matrix.arch == 'amd64' && format('image: {0}', matrix.distro) || '' }}
+    # 不使用 container，所有构建都在主机上使用 docker run
+    # 这样可以避免 QEMU 设置的时序问题
     
     steps:
       - name: Setup QEMU (ARM only)
@@ -68,112 +68,83 @@ jobs:
         with:
           platforms: arm64
       
-      - name: Setup Container for ARM Build
-        if: matrix.arch == 'arm64'
+      - name: Setup Build Environment (x86_64)
+        if: matrix.arch == 'amd64'
         run: |
-          # 创建构建脚本
-          cat > /tmp/build_in_container.sh <<'SCRIPT_EOF'
-          set -e
-          DISTRO="${{ matrix.distro }}"
-          echo "Setting up sources for $DISTRO..."
-          
-          # 备份原始源
-          cp /etc/apt/sources.list /etc/apt/sources.list.bak || true
-          
-          # 对于 Debian，使用官方镜像
-          if grep -q "Debian" /etc/os-release 2>/dev/null; then
-            CODENAME=$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
-            cat > /etc/apt/sources.list <<EOF
-          deb http://deb.debian.org/debian ${CODENAME} main contrib non-free
-          deb http://deb.debian.org/debian ${CODENAME}-updates main contrib non-free
-          deb http://security.debian.org/debian-security ${CODENAME}-security main contrib non-free
-          EOF
-            echo "=== Updated Debian sources to: ${CODENAME} ==="
-          fi
-          
-          # 安装依赖
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            git \
-            build-essential \
-            cmake \
-            debhelper \
-            devscripts \
-            lsb-release \
-            ca-certificates
-          SCRIPT_EOF
-          
-          # 在容器内执行设置
-          docker run --rm --platform=linux/arm64/v8 \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            ${{ matrix.distro }} \
-            bash /workspace/tmp/build_in_container.sh || \
+          # 在容器内设置环境
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             ${{ matrix.distro }} \
-            bash /workspace/tmp/build_in_container.sh
-      
-      - name: Fix Debian/Ubuntu Sources
-        if: matrix.arch != 'arm64'
-        run: |
-          # 备份原始源
-          cp /etc/apt/sources.list /etc/apt/sources.list.bak || true
-          
-          # 对于 Debian，使用官方镜像
-          if grep -q "Debian" /etc/os-release 2>/dev/null; then
-            CODENAME=$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
-            cat > /etc/apt/sources.list <<EOF
-          deb http://deb.debian.org/debian ${CODENAME} main contrib non-free
-          deb http://deb.debian.org/debian ${CODENAME}-updates main contrib non-free
-          deb http://security.debian.org/debian-security ${CODENAME}-security main contrib non-free
+            bash -c "
+            # 备份原始源
+            cp /etc/apt/sources.list /etc/apt/sources.list.bak || true
+            
+            # 对于 Debian，使用官方镜像
+            if grep -q 'Debian' /etc/os-release 2>/dev/null; then
+              CODENAME=\$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
+              cat > /etc/apt/sources.list <<EOF
+          deb http://deb.debian.org/debian \${CODENAME} main contrib non-free
+          deb http://deb.debian.org/debian \${CODENAME}-updates main contrib non-free
+          deb http://security.debian.org/debian-security \${CODENAME}-security main contrib non-free
           EOF
-            echo "=== Updated Debian sources to: ${CODENAME} ==="
-          fi
+              echo '=== Updated Debian sources to: '\${CODENAME}' ==='
+            fi
+            
+            # 安装依赖
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y --no-install-recommends \
+              git build-essential cmake debhelper devscripts lsb-release ca-certificates
+            
+            # 显示版本信息
+            echo '=== System Info ==='
+            lsb_release -a || cat /etc/os-release
+            uname -m
+            g++ --version | head -1
+            cmake --version | head -1
+            echo 'Architecture: ${{ matrix.arch }}'
+            echo '==================='
+          "
       
-      - name: Install Build Dependencies
-        if: matrix.arch != 'arm64'
-        run: |
-          # 使用国内镜像加速（可选）
-          export DEBIAN_FRONTEND=noninteractive
-          
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            git \
-            build-essential \
-            cmake \
-            debhelper \
-            devscripts \
-            lsb-release \
-            ca-certificates \
-            qemu-user-static || true
-          
-          # 显示版本信息
-          echo "=== System Info ==="
-          lsb_release -a || cat /etc/os-release
-          uname -m
-          g++ --version | head -1
-          cmake --version | head -1
-          echo "Architecture: ${{ matrix.arch }}"
-          echo "==================="
-      
-      - name: Install Build Dependencies (ARM)
+      - name: Setup Build Environment (ARM64)
         if: matrix.arch == 'arm64'
         run: |
-          # 在容器内安装依赖
+          # 在 ARM 容器内设置环境
           docker run --rm --platform=linux/arm64/v8 \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             ${{ matrix.distro }} \
-            bash -c "export DEBIAN_FRONTEND=noninteractive && \
-            apt-get update && \
+            bash -c "
+            # 备份原始源
+            cp /etc/apt/sources.list /etc/apt/sources.list.bak || true
+            
+            # 对于 Debian，使用官方镜像
+            if grep -q 'Debian' /etc/os-release 2>/dev/null; then
+              CODENAME=\$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
+              cat > /etc/apt/sources.list <<EOF
+          deb http://deb.debian.org/debian \${CODENAME} main contrib non-free
+          deb http://deb.debian.org/debian \${CODENAME}-updates main contrib non-free
+          deb http://security.debian.org/debian-security \${CODENAME}-security main contrib non-free
+          EOF
+              echo '=== Updated Debian sources to: '\${CODENAME}' ==='
+            fi
+            
+            # 安装依赖
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
             apt-get install -y --no-install-recommends \
-              git build-essential cmake debhelper devscripts lsb-release ca-certificates && \
-            uname -m && \
-            g++ --version | head -1 && \
-            cmake --version | head -1" || true
+              git build-essential cmake debhelper devscripts lsb-release ca-certificates
+            
+            # 显示版本信息
+            echo '=== System Info ==='
+            lsb_release -a || cat /etc/os-release
+            uname -m
+            g++ --version | head -1
+            cmake --version | head -1
+            echo 'Architecture: ${{ matrix.arch }}'
+            echo '==================='
+          "
       
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -192,30 +163,30 @@ jobs:
           echo "Building version: $VERSION"
       
       - name: Build DEB Package (x86_64)
-        if: matrix.arch != 'arm64'
+        if: matrix.arch == 'amd64'
         run: |
-          # 显示构建环境信息
-          echo "=== Build Environment ==="
-          uname -m
-          g++ --version
-          cmake --version
-          echo "Target Architecture: ${{ matrix.arch }}"
-          echo "========================"
-          
-          mkdir build && cd build
-          
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build . -j$(nproc)
-          
-          # 设置 CPack 架构
-          export CPACK_DEBIAN_PACKAGE_ARCHITECTURE="${{ matrix.arch }}"
-          cpack -G DEB
-          
-          # 显示生成的包
-          echo "=== Generated Packages ==="
-          ls -lh *.deb
-          dpkg-deb -I *.deb | grep Architecture || true
-          echo "========================"
+          # 在容器内构建
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ matrix.distro }} \
+            bash -c "
+            echo '=== Build Environment ===' && \
+            uname -m && \
+            g++ --version && \
+            cmake --version && \
+            echo 'Target Architecture: ${{ matrix.arch }}' && \
+            echo '========================' && \
+            mkdir -p build && cd build && \
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+            cmake --build . -j\$(nproc) && \
+            export CPACK_DEBIAN_PACKAGE_ARCHITECTURE='amd64' && \
+            cpack -G DEB && \
+            echo '=== Generated Packages ===' && \
+            ls -lh *.deb && \
+            dpkg-deb -I *.deb | grep Architecture || true && \
+            echo '========================'
+          "
       
       - name: Build DEB Package (ARM64)
         if: matrix.arch == 'arm64'
