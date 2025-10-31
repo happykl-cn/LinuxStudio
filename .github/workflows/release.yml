@@ -166,9 +166,12 @@ jobs:
         if: matrix.arch == 'amd64'
         run: |
           # 在容器内构建
+          DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e VERSION="${{ steps.version.outputs.version }}" \
+            -e DISTRO="${DISTRO}" \
             ${{ matrix.distro }} \
             bash -c "
             echo '=== Build Environment ===' && \
@@ -185,6 +188,8 @@ jobs:
             echo '=== Generated Packages ===' && \
             ls -lh *.deb && \
             dpkg-deb -I *.deb | grep Architecture || true && \
+            mv *.deb linuxstudio_\${VERSION}_\${DISTRO}_amd64.deb 2>/dev/null || true && \
+            ls -lh *.deb && \
             echo '========================'
           "
       
@@ -192,9 +197,12 @@ jobs:
         if: matrix.arch == 'arm64'
         run: |
           # 在 ARM 容器中构建
+          DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           docker run --rm --platform=linux/arm64/v8 \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e VERSION="${{ steps.version.outputs.version }}" \
+            -e DISTRO="${DISTRO}" \
             ${{ matrix.distro }} \
             bash -c "
             echo '=== Build Environment ===' && \
@@ -211,27 +219,15 @@ jobs:
             echo '=== Generated Packages ===' && \
             ls -lh *.deb && \
             dpkg-deb -I *.deb | grep Architecture || true && \
+            mv *.deb linuxstudio_\${VERSION}_\${DISTRO}_arm64.deb 2>/dev/null || true && \
+            ls -lh *.deb && \
             echo '========================'
           "
       
-      - name: Copy ARM Package from Container
-        if: matrix.arch == 'arm64'
+      - name: Set Artifact Name
         run: |
-          docker run --rm --platform=linux/arm64/v8 \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace/build \
-            ${{ matrix.distro }} \
-            bash -c "cp *.deb /workspace/build/" || true
-      
-      - name: Rename Package
-        run: |
-          cd build
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           ARCH="${{ matrix.arch }}"
-          mv *.deb ${PROJECT_NAME}_${{ steps.version.outputs.version }}_${DISTRO}_${ARCH}.deb 2>/dev/null || \
-          mv linuxstudio*.deb ${PROJECT_NAME}_${{ steps.version.outputs.version }}_${DISTRO}_${ARCH}.deb 2>/dev/null || true
-          
-          # 设置安全的 artifact 名称
           echo "ARTIFACT_NAME=deb-${DISTRO}-${ARCH}-packages" >> $GITHUB_ENV
       
       - name: Upload Artifact
@@ -337,9 +333,12 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: |
           # 在容器内构建
+          DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e VERSION="${{ steps.version.outputs.version }}" \
+            -e DISTRO="${DISTRO}" \
             ${{ matrix.distro }} \
             bash -c "
             echo '=== Build Environment ===' && \
@@ -364,6 +363,8 @@ jobs:
             echo '=== Generated Packages ===' && \
             ls -lh *.rpm && \
             rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true && \
+            mv *.rpm linuxstudio-\${VERSION}-1.\${DISTRO}.x86_64.rpm 2>/dev/null || true && \
+            ls -lh *.rpm && \
             echo '========================'
           "
       
@@ -371,9 +372,12 @@ jobs:
         if: matrix.arch == 'aarch64'
         run: |
           # 在 ARM 容器内构建
+          DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           docker run --rm --platform=linux/arm64/v8 \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e VERSION="${{ steps.version.outputs.version }}" \
+            -e DISTRO="${DISTRO}" \
             ${{ matrix.distro }} \
             bash -c "
             echo '=== Build Environment ===' && \
@@ -398,17 +402,15 @@ jobs:
             echo '=== Generated Packages ===' && \
             ls -lh *.rpm && \
             rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true && \
+            mv *.rpm linuxstudio-\${VERSION}-1.\${DISTRO}.aarch64.rpm 2>/dev/null || true && \
+            ls -lh *.rpm && \
             echo '========================'
           "
       
-      - name: Rename Package
+      - name: Set Artifact Name
         run: |
-          cd build
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           ARCH="${{ matrix.arch }}"
-          mv *.rpm ${PROJECT_NAME}-${{ steps.version.outputs.version }}-1.${DISTRO}.${ARCH}.rpm || true
-          
-          # 设置安全的 artifact 名称
           echo "ARTIFACT_NAME=rpm-${DISTRO}-${ARCH}-packages" >> $GITHUB_ENV
       
       - name: Upload Artifact
