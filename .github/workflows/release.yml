@@ -68,84 +68,6 @@ jobs:
         with:
           platforms: arm64
       
-      - name: Setup Build Environment (x86_64)
-        if: matrix.arch == 'amd64'
-        run: |
-          # 在容器内设置环境
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            ${{ matrix.distro }} \
-            bash -c "
-            # 备份原始源
-            cp /etc/apt/sources.list /etc/apt/sources.list.bak || true
-            
-            # 对于 Debian，使用官方镜像
-            if grep -q 'Debian' /etc/os-release 2>/dev/null; then
-              CODENAME=\$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
-              cat > /etc/apt/sources.list <<EOF
-          deb http://deb.debian.org/debian \${CODENAME} main contrib non-free
-          deb http://deb.debian.org/debian \${CODENAME}-updates main contrib non-free
-          deb http://security.debian.org/debian-security \${CODENAME}-security main contrib non-free
-          EOF
-              echo '=== Updated Debian sources to: '\${CODENAME}' ==='
-            fi
-            
-            # 安装依赖
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update
-            apt-get install -y --no-install-recommends \
-              git build-essential cmake debhelper devscripts lsb-release ca-certificates
-            
-            # 显示版本信息
-            echo '=== System Info ==='
-            lsb_release -a || cat /etc/os-release
-            uname -m
-            g++ --version | head -1
-            cmake --version | head -1
-            echo 'Architecture: ${{ matrix.arch }}'
-            echo '==================='
-          "
-      
-      - name: Setup Build Environment (ARM64)
-        if: matrix.arch == 'arm64'
-        run: |
-          # 在 ARM 容器内设置环境
-          docker run --rm --platform=linux/arm64/v8 \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            ${{ matrix.distro }} \
-            bash -c "
-            # 备份原始源
-            cp /etc/apt/sources.list /etc/apt/sources.list.bak || true
-            
-            # 对于 Debian，使用官方镜像
-            if grep -q 'Debian' /etc/os-release 2>/dev/null; then
-              CODENAME=\$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
-              cat > /etc/apt/sources.list <<EOF
-          deb http://deb.debian.org/debian \${CODENAME} main contrib non-free
-          deb http://deb.debian.org/debian \${CODENAME}-updates main contrib non-free
-          deb http://security.debian.org/debian-security \${CODENAME}-security main contrib non-free
-          EOF
-              echo '=== Updated Debian sources to: '\${CODENAME}' ==='
-            fi
-            
-            # 安装依赖
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update
-            apt-get install -y --no-install-recommends \
-              git build-essential cmake debhelper devscripts lsb-release ca-certificates
-            
-            # 显示版本信息
-            echo '=== System Info ==='
-            lsb_release -a || cat /etc/os-release
-            uname -m
-            g++ --version | head -1
-            cmake --version | head -1
-            echo 'Architecture: ${{ matrix.arch }}'
-            echo '==================='
-          "
-      
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -165,7 +87,7 @@ jobs:
       - name: Build DEB Package (x86_64)
         if: matrix.arch == 'amd64'
         run: |
-          # 在容器内构建
+          # 在容器内一次性完成安装和构建
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
@@ -174,6 +96,23 @@ jobs:
             -e DISTRO="${DISTRO}" \
             ${{ matrix.distro }} \
             bash -c "
+            # 备份原始源
+            cp /etc/apt/sources.list /etc/apt/sources.list.bak || true && \
+            # 对于 Debian，使用官方镜像
+            if grep -q 'Debian' /etc/os-release 2>/dev/null; then
+              CODENAME=\$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
+              cat > /etc/apt/sources.list <<EOF
+          deb http://deb.debian.org/debian \${CODENAME} main contrib non-free
+          deb http://deb.debian.org/debian \${CODENAME}-updates main contrib non-free
+          deb http://security.debian.org/debian-security \${CODENAME}-security main contrib non-free
+          EOF
+              echo '=== Updated Debian sources to: '\${CODENAME}' ==='
+            fi && \
+            # 安装依赖
+            export DEBIAN_FRONTEND=noninteractive && \
+            apt-get update && \
+            apt-get install -y --no-install-recommends \
+              git build-essential cmake debhelper devscripts lsb-release ca-certificates && \
             echo '=== Build Environment ===' && \
             uname -m && \
             g++ --version && \
@@ -196,7 +135,7 @@ jobs:
       - name: Build DEB Package (ARM64)
         if: matrix.arch == 'arm64'
         run: |
-          # 在 ARM 容器中构建
+          # 在 ARM 容器中一次性完成安装和构建
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           docker run --rm --platform=linux/arm64/v8 \
             -v ${{ github.workspace }}:/workspace \
@@ -205,6 +144,23 @@ jobs:
             -e DISTRO="${DISTRO}" \
             ${{ matrix.distro }} \
             bash -c "
+            # 备份原始源
+            cp /etc/apt/sources.list /etc/apt/sources.list.bak || true && \
+            # 对于 Debian，使用官方镜像
+            if grep -q 'Debian' /etc/os-release 2>/dev/null; then
+              CODENAME=\$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
+              cat > /etc/apt/sources.list <<EOF
+          deb http://deb.debian.org/debian \${CODENAME} main contrib non-free
+          deb http://deb.debian.org/debian \${CODENAME}-updates main contrib non-free
+          deb http://security.debian.org/debian-security \${CODENAME}-security main contrib non-free
+          EOF
+              echo '=== Updated Debian sources to: '\${CODENAME}' ==='
+            fi && \
+            # 安装依赖
+            export DEBIAN_FRONTEND=noninteractive && \
+            apt-get update && \
+            apt-get install -y --no-install-recommends \
+              git build-essential cmake debhelper devscripts lsb-release ca-certificates && \
             echo '=== Build Environment ===' && \
             uname -m && \
             g++ --version && \
@@ -274,46 +230,6 @@ jobs:
         with:
           platforms: arm64
       
-      - name: Setup Build Environment (x86_64)
-        if: matrix.arch == 'x86_64'
-        run: |
-          # 在容器内安装依赖
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            ${{ matrix.distro }} \
-            bash -c "
-            if command -v dnf &> /dev/null; then
-              dnf install -y git gcc-c++ cmake rpm-build make
-            elif command -v yum &> /dev/null; then
-              yum install -y git gcc-c++ cmake rpm-build make
-            fi
-            echo '=== System Info ==='
-            uname -m
-            echo 'Target Architecture: ${{ matrix.arch }}'
-            echo '==================='
-          "
-      
-      - name: Setup Build Environment (ARM64)
-        if: matrix.arch == 'aarch64'
-        run: |
-          # 在 ARM 容器内安装依赖
-          docker run --rm --platform=linux/arm64/v8 \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            ${{ matrix.distro }} \
-            bash -c "
-            if command -v dnf &> /dev/null; then
-              dnf install -y git gcc-c++ cmake rpm-build make
-            elif command -v yum &> /dev/null; then
-              yum install -y git gcc-c++ cmake rpm-build make
-            fi
-            echo '=== System Info ==='
-            uname -m
-            echo 'Target Architecture: ${{ matrix.arch }}'
-            echo '==================='
-          "
-      
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -332,7 +248,7 @@ jobs:
       - name: Build RPM Package (x86_64)
         if: matrix.arch == 'x86_64'
         run: |
-          # 在容器内构建
+          # 在容器内一次性完成安装和构建
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
@@ -341,6 +257,12 @@ jobs:
             -e DISTRO="${DISTRO}" \
             ${{ matrix.distro }} \
             bash -c "
+            # 安装依赖
+            if command -v dnf &> /dev/null; then
+              dnf install -y git gcc-c++ cmake rpm-build make
+            elif command -v yum &> /dev/null; then
+              yum install -y git gcc-c++ cmake rpm-build make
+            fi && \
             echo '=== Build Environment ===' && \
             uname -m && \
             g++ --version || gcc --version && \
@@ -371,7 +293,7 @@ jobs:
       - name: Build RPM Package (ARM64)
         if: matrix.arch == 'aarch64'
         run: |
-          # 在 ARM 容器内构建
+          # 在 ARM 容器内一次性完成安装和构建
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
           docker run --rm --platform=linux/arm64/v8 \
             -v ${{ github.workspace }}:/workspace \
@@ -380,6 +302,12 @@ jobs:
             -e DISTRO="${DISTRO}" \
             ${{ matrix.distro }} \
             bash -c "
+            # 安装依赖
+            if command -v dnf &> /dev/null; then
+              dnf install -y git gcc-c++ cmake rpm-build make
+            elif command -v yum &> /dev/null; then
+              yum install -y git gcc-c++ cmake rpm-build make
+            fi && \
             echo '=== Build Environment ===' && \
             uname -m && \
             g++ --version || gcc --version && \
@@ -427,14 +355,6 @@ jobs:
     # 不使用 container，改用 docker run
     
     steps:
-      - name: Install Dependencies
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            archlinux:latest \
-            bash -c "pacman -Syu --noconfirm && pacman -S --noconfirm base-devel cmake git"
-      
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -442,12 +362,15 @@ jobs:
       
       - name: Build Package
         run: |
-          # 在容器内构建
+          # 在容器内一次性完成安装和构建
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             archlinux:latest \
             bash -c "
+            # 安装依赖
+            pacman -Syu --noconfirm && \
+            pacman -S --noconfirm base-devel cmake git && \
             echo '=== Build Environment ===' && \
             g++ --version && \
             cmake --version && \
