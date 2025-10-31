@@ -60,7 +60,7 @@ jobs:
             platform: linux/arm64/v8
     container:
       image: ${{ matrix.distro }}
-      options: ${{ matrix.arch == 'arm64' && '--platform=linux/arm64/v8' || '' }}
+      options: ${{ matrix.arch == 'arm64' && '--platform=linux/arm64/v8' || '--platform=linux/amd64' }}
     
     steps:
       - name: Fix Debian/Ubuntu Sources
@@ -200,7 +200,7 @@ jobs:
             platform: linux/arm64/v8
     container:
       image: ${{ matrix.distro }}
-      options: ${{ matrix.arch == 'aarch64' && '--platform=linux/arm64/v8' || '' }}
+      options: ${{ matrix.arch == 'aarch64' && '--platform=linux/arm64/v8' || '--platform=linux/amd64' }}
     
     steps:
       - name: Setup QEMU (ARM only)
