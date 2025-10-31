@@ -1,0 +1,41 @@
+[33mf775391[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge branch 'main' of https://github.com/happykl-cn/LinuxStudio
+[33m49c76bb[m 别搞
+[33m6b8f9c2[m Merge branch 'main' of https://github.com/happykl-cn/LinuxStudio
+[33m43b60db[m 水男
+[33ma186ae0[m[33m ([m[1;33mtag: [m[1;33mv1.0.1[m[33m)[m 完整arm64库文件
+[33ma9e7195[m aaaa
+[33m1e0e95d[m ...kkk
+[33mda61a18[m llllllllllllffffffffffffffffffffffkkkkkkkkkkkkk!!!fuckkkkkkk youuuuuuuuuubiachhhhhhhhhh!!!!!!!!!!!!!
+[33med3310d[m ...
+[33m5704f15[m ffffffffffffffffffffffkkkkkkkkkkkkk!!!fuckkkkkkk youuuuuuuuuubiachhhhhhhhhh!!!!!!!!!!!!!
+[33m62d8a6c[m iwillfuckyoutodeath
+[33mf6d7186[m fkyoubitch
+[33mc76e990[m fkagain
+[33m66466ed[m fk
+[33mc8b4a76[m dededebug
+[33m6d05a90[m debug again
+[33m3285afe[m[33m ([m[1;33mtag: [m[1;33m1.0.1[m[33m)[m 修改编译bug
+[33mf96cae9[m 1支持arm2完成组件插件注册表写入读取
+[33mcbed3d2[m 1支持arm2完成组件插件注册表写入读取
+[33m2bc7ece[m 我再试图搞懂一些东西...
+[33m9254eda[m 随笔
+[33m4463f4e[m[33m ([m[1;33mtag: [m[1;33mv1.0.0[m[33m)[m 解决 GITHUB_TOKEN 没有足够的权限
+[33mf53deba[m debugagainandagain
+[33m8cf486a[m debugaggggain
+[33m68b88c8[m debugcpp
+[33me3dca89[m debugymlv2
+[33m922404e[m debugyml
+[33m160446e[m debugyml
+[33m16b7955[m againdebugyml
+[33m315f8a2[m 更改版本
+[33m19b9f4a[m 修改
+[33m9eb462a[m release.sh
+[33mbe98d92[m 规整架构，规划打包发布CI，更新CLI逻辑，更新sh兼容更多莫名其妙的啥也没有的边缘计算硬件，增强健壮性
+[33mdcb31a5[m 合并了一下
+[33mff54755[m 乱七八糟的md
+[33m55df82f[m 更新sh,txt,md
+[33m7b66df0[m 修改vscode配置
+[33m8dc8152[m 修改txt
+[33m88a93c3[m pending:totalcount,succeedcount,disk space check,sysinfocollect,syspath/env clash检查是否已存在MySQL、PHP、Nginx、Apache服务,检查SSL依赖是否完整,错误日志上报功能
+[33mea40af0[m test
+[33ma9a0aad[m TheBeginning
