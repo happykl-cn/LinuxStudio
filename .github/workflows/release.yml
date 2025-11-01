@@ -132,11 +132,12 @@ jobs:
             cmake --version | head -1 && \
             echo 'Target Architecture: ${{ matrix.arch }}' && \
             echo '========================' && \
+            rm -rf build && \
             mkdir -p build && cd build && \
             cmake .. -DCMAKE_BUILD_TYPE=Release \
                      -DCMAKE_INSTALL_PREFIX=/usr \
-                     -DCMAKE_C_COMPILER=gcc \
-                     -DCMAKE_CXX_COMPILER=g++ && \
+                     -DCMAKE_C_COMPILER=/usr/bin/gcc \
+                     -DCMAKE_CXX_COMPILER=/usr/bin/g++ && \
             cmake --build . -j\$(nproc) && \
             export CPACK_DEBIAN_PACKAGE_ARCHITECTURE='amd64' && \
             cpack -G DEB && \
@@ -183,11 +184,12 @@ jobs:
             cmake --version | head -1 && \
             echo 'Target Architecture: ${{ matrix.arch }}' && \
             echo '========================' && \
+            rm -rf build && \
             mkdir -p build && cd build && \
             cmake .. -DCMAKE_BUILD_TYPE=Release \
                      -DCMAKE_INSTALL_PREFIX=/usr \
-                     -DCMAKE_C_COMPILER=gcc \
-                     -DCMAKE_CXX_COMPILER=g++ && \
+                     -DCMAKE_C_COMPILER=/usr/bin/gcc \
+                     -DCMAKE_CXX_COMPILER=/usr/bin/g++ && \
             cmake --build . -j\$(nproc) && \
             export CPACK_DEBIAN_PACKAGE_ARCHITECTURE='arm64' && \
             cpack -G DEB && \
@@ -238,15 +240,19 @@ jobs:
             cat /proc/cpuinfo | grep -i 'model\|hardware\|revision\|features' | head -10 || true && \
             echo '========================' && \
             echo 'Configuring CMake...' && \
+            rm -rf build && \
             mkdir -p build && cd build && \
-            cmake .. -DCMAKE_BUILD_TYPE=Release \
+            cmake .. \
+                     -DCMAKE_BUILD_TYPE=Release \
                      -DCMAKE_INSTALL_PREFIX=/usr \
                      -DCMAKE_SYSTEM_PROCESSOR=armv7l \
-                     -DCMAKE_C_COMPILER=gcc \
-                     -DCMAKE_CXX_COMPILER=g++ \
+                     -DCMAKE_C_COMPILER=/usr/bin/gcc \
+                     -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
                      -DCMAKE_EXE_LINKER_FLAGS='-pthread' \
                      -DCMAKE_SHARED_LINKER_FLAGS='-pthread' \
-                     -DCMAKE_VERBOSE_MAKEFILE=ON || { \
+                     -DCMAKE_VERBOSE_MAKEFILE=ON \
+                     -DCMAKE_FORCE_C_COMPILER=TRUE \
+                     -DCMAKE_FORCE_CXX_COMPILER=TRUE || { \
               echo '=== CMake Configuration Failed ===' && \
               echo 'CMakeOutput.log:' && \
               cat CMakeFiles/CMakeOutput.log | tail -50 && \
