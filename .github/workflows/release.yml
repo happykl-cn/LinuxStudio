@@ -283,18 +283,15 @@ jobs:
           - distro: fedora:39
             arch: aarch64
             platform: linux/arm64/v8
-          # ARM32 (armhfp/armv7hl) 构建
-          - distro: fedora:38
-            arch: armv7hl
-            platform: linux/arm/v7
+          # ARM32 (armhfp/armv7hl) 构建 - Fedora 不支持 ARM32，跳过
     # 不使用 container，所有构建都在主机上使用 docker run
     
     steps:
       - name: Setup QEMU (ARM only)
-        if: matrix.arch == 'aarch64' || matrix.arch == 'armv7hl'
+        if: matrix.arch == 'aarch64'
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: ${{ matrix.arch == 'aarch64' && 'arm64' || 'arm' }}
+          platforms: arm64
       
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -397,52 +394,6 @@ jobs:
             ls -lh *.rpm && \
             rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true && \
             mv *.rpm linuxstudio-\${VERSION}-1.\${DISTRO}.aarch64.rpm 2>/dev/null || true && \
-            ls -lh *.rpm && \
-            echo '========================'
-          "
-      
-      - name: Build RPM Package (ARM32)
-        if: matrix.arch == 'armv7hl'
-        run: |
-          # 在 ARM32 容器内一次性完成安装和构建
-          DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
-          docker run --rm --platform=linux/arm/v7 \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            -e VERSION="${{ steps.version.outputs.version }}" \
-            -e DISTRO="${DISTRO}" \
-            ${{ matrix.distro }} \
-            bash -c "
-            # 安装依赖（ARM32 需要 libatomic）
-            if command -v dnf &> /dev/null; then
-              dnf install -y git gcc-c++ cmake rpm-build make libatomic
-            elif command -v yum &> /dev/null; then
-              yum install -y git gcc-c++ cmake rpm-build make libatomic
-            fi && \
-            echo '=== Build Environment (ARM32) ===' && \
-            uname -m && \
-            g++ --version || gcc --version && \
-            if command -v cmake3 &> /dev/null; then
-              echo 'Using cmake3:' && \
-              cmake3 --version && \
-              CMAKE_CMD=cmake3
-            else
-              echo 'Using cmake:' && \
-              cmake --version && \
-              CMAKE_CMD=cmake
-            fi && \
-            echo 'Target Architecture: ${{ matrix.arch }} (armv7hl)' && \
-            cat /proc/cpuinfo | grep -i 'model\|hardware\|revision' | head -5 || true && \
-            echo '========================' && \
-            mkdir -p build && cd build && \
-            \$CMAKE_CMD .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_SYSTEM_PROCESSOR=armv7l && \
-            \$CMAKE_CMD --build . -j\$(nproc) && \
-            export CPACK_RPM_PACKAGE_ARCHITECTURE='armv7hl' && \
-            cpack -G RPM && \
-            echo '=== Generated Packages ===' && \
-            ls -lh *.rpm && \
-            rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true && \
-            mv *.rpm linuxstudio-\${VERSION}-1.\${DISTRO}.armv7hl.rpm 2>/dev/null || true && \
             ls -lh *.rpm && \
             echo '========================'
           "
@@ -654,19 +605,26 @@ jobs:
           
           - Debian/Ubuntu (amd64): 5 个 (20.04, 22.04, 24.04, Debian 11, 12)
           - Debian/Ubuntu (arm64): 3 个 (Ubuntu 22.04/24.04, Debian 12)
-          - Debian/Ubuntu (armhf): 4 个 (Ubuntu 20.04/22.04, Debian 11/12)
+          - Debian/Ubuntu (armhf): 4 个 (Ubuntu 20.04/22.04, Debian 11/12) ⭐ 新增
           - RHEL/Rocky/Fedora (x86_64): 4 个 (Rocky 8/9, Fedora 38/39)
           - RHEL/Rocky/Fedora (aarch64): 2 个 (Rocky 9, Fedora 39)
-          - RHEL/Rocky/Fedora (armv7hl): 1 个 (Fedora 38)
           - Arch Linux: 1 个
+          
+          **注意**: RPM 系发行版官方不再支持 ARM32 架构，请使用 Debian/Ubuntu 系统
           
           ### 🏗️ ARM 架构支持
           
-          - ✅ ARM64 (aarch64) 完整支持
-          - ✅ ARM32 (armhf/armv7) 完整支持
-          - ✅ 适用于 Raspberry Pi 全系列 (Pi 1/2/3/4/5, Zero)
-          - ✅ 适用于各类 ARM 开发板和嵌入式设备
-          - ✅ ARMv7 NEON SIMD 优化，ARMv6 VFP 优化
+          - ✅ **ARM64 (aarch64)** 完整支持
+            - Debian/Ubuntu/Fedora/Rocky Linux
+            - Raspberry Pi 4/5, ARM 服务器
+          - ✅ **ARM32 (armhf/armv7)** 完整支持
+            - Debian/Ubuntu 系统
+            - Raspberry Pi 全系列 (Pi 1/2/3/4, Zero/Zero 2)
+            - 各类 ARM32 开发板和嵌入式设备
+          - ✅ **性能优化**
+            - ARMv7: NEON SIMD 指令集加速
+            - ARMv6: VFP 浮点运算加速
+            - Hard Float ABI
           - ✅ 所有核心功能在 ARM 平台上可用
           
           ### 📚 文档
