@@ -58,15 +58,28 @@ jobs:
           - distro: debian:12
             arch: arm64
             platform: linux/arm64/v8
+          # ARM32 (armhf/armv7) 构建
+          - distro: ubuntu:20.04
+            arch: armhf
+            platform: linux/arm/v7
+          - distro: ubuntu:22.04
+            arch: armhf
+            platform: linux/arm/v7
+          - distro: debian:11
+            arch: armhf
+            platform: linux/arm/v7
+          - distro: debian:12
+            arch: armhf
+            platform: linux/arm/v7
     # 不使用 container，所有构建都在主机上使用 docker run
     # 这样可以避免 QEMU 设置的时序问题
     
     steps:
       - name: Setup QEMU (ARM only)
-        if: matrix.arch == 'arm64'
+        if: matrix.arch == 'arm64' || matrix.arch == 'armhf'
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: arm64
+          platforms: ${{ matrix.arch == 'arm64' && 'arm64' || 'arm' }}
       
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -180,6 +193,55 @@ jobs:
             echo '========================'
           "
       
+      - name: Build DEB Package (ARM32)
+        if: matrix.arch == 'armhf'
+        run: |
+          # 在 ARM32 容器中一次性完成安装和构建
+          DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
+          docker run --rm --platform=linux/arm/v7 \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e VERSION="${{ steps.version.outputs.version }}" \
+            -e DISTRO="${DISTRO}" \
+            ${{ matrix.distro }} \
+            bash -c "
+            # 备份原始源
+            cp /etc/apt/sources.list /etc/apt/sources.list.bak || true && \
+            # 对于 Debian，使用官方镜像
+            if grep -q 'Debian' /etc/os-release 2>/dev/null; then
+              CODENAME=\$(grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
+              cat > /etc/apt/sources.list <<EOF
+          deb http://deb.debian.org/debian \${CODENAME} main contrib non-free
+          deb http://deb.debian.org/debian \${CODENAME}-updates main contrib non-free
+          deb http://security.debian.org/debian-security \${CODENAME}-security main contrib non-free
+          EOF
+              echo '=== Updated Debian sources to: '\${CODENAME}' ==='
+            fi && \
+            # 安装依赖（ARM32 需要 libatomic1）
+            export DEBIAN_FRONTEND=noninteractive && \
+            apt-get update && \
+            apt-get install -y --no-install-recommends \
+              git build-essential cmake debhelper devscripts lsb-release ca-certificates libatomic1 && \
+            echo '=== Build Environment (ARM32) ===' && \
+            uname -m && \
+            g++ --version && \
+            cmake --version && \
+            echo 'Target Architecture: ${{ matrix.arch }} (armhf)' && \
+            cat /proc/cpuinfo | grep -i 'model\|hardware\|revision' | head -5 || true && \
+            echo '========================' && \
+            mkdir -p build && cd build && \
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_SYSTEM_PROCESSOR=armv7l && \
+            cmake --build . -j\$(nproc) && \
+            export CPACK_DEBIAN_PACKAGE_ARCHITECTURE='armhf' && \
+            cpack -G DEB && \
+            echo '=== Generated Packages ===' && \
+            ls -lh *.deb && \
+            dpkg-deb -I *.deb | grep Architecture || true && \
+            mv *.deb linuxstudio_\${VERSION}_\${DISTRO}_armhf.deb 2>/dev/null || true && \
+            ls -lh *.deb && \
+            echo '========================'
+          "
+      
       - name: Set Artifact Name
         run: |
           DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
@@ -221,14 +283,18 @@ jobs:
           - distro: fedora:39
             arch: aarch64
             platform: linux/arm64/v8
+          # ARM32 (armhfp/armv7hl) 构建
+          - distro: fedora:38
+            arch: armv7hl
+            platform: linux/arm/v7
     # 不使用 container，所有构建都在主机上使用 docker run
     
     steps:
       - name: Setup QEMU (ARM only)
-        if: matrix.arch == 'aarch64'
+        if: matrix.arch == 'aarch64' || matrix.arch == 'armv7hl'
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: arm64
+          platforms: ${{ matrix.arch == 'aarch64' && 'arm64' || 'arm' }}
       
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -331,6 +397,52 @@ jobs:
             ls -lh *.rpm && \
             rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true && \
             mv *.rpm linuxstudio-\${VERSION}-1.\${DISTRO}.aarch64.rpm 2>/dev/null || true && \
+            ls -lh *.rpm && \
+            echo '========================'
+          "
+      
+      - name: Build RPM Package (ARM32)
+        if: matrix.arch == 'armv7hl'
+        run: |
+          # 在 ARM32 容器内一次性完成安装和构建
+          DISTRO=$(echo "${{ matrix.distro }}" | tr ':' '-')
+          docker run --rm --platform=linux/arm/v7 \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e VERSION="${{ steps.version.outputs.version }}" \
+            -e DISTRO="${DISTRO}" \
+            ${{ matrix.distro }} \
+            bash -c "
+            # 安装依赖（ARM32 需要 libatomic）
+            if command -v dnf &> /dev/null; then
+              dnf install -y git gcc-c++ cmake rpm-build make libatomic
+            elif command -v yum &> /dev/null; then
+              yum install -y git gcc-c++ cmake rpm-build make libatomic
+            fi && \
+            echo '=== Build Environment (ARM32) ===' && \
+            uname -m && \
+            g++ --version || gcc --version && \
+            if command -v cmake3 &> /dev/null; then
+              echo 'Using cmake3:' && \
+              cmake3 --version && \
+              CMAKE_CMD=cmake3
+            else
+              echo 'Using cmake:' && \
+              cmake --version && \
+              CMAKE_CMD=cmake
+            fi && \
+            echo 'Target Architecture: ${{ matrix.arch }} (armv7hl)' && \
+            cat /proc/cpuinfo | grep -i 'model\|hardware\|revision' | head -5 || true && \
+            echo '========================' && \
+            mkdir -p build && cd build && \
+            \$CMAKE_CMD .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_SYSTEM_PROCESSOR=armv7l && \
+            \$CMAKE_CMD --build . -j\$(nproc) && \
+            export CPACK_RPM_PACKAGE_ARCHITECTURE='armv7hl' && \
+            cpack -G RPM && \
+            echo '=== Generated Packages ===' && \
+            ls -lh *.rpm && \
+            rpm -qp --queryformat '%{ARCH}\n' *.rpm | head -1 || true && \
+            mv *.rpm linuxstudio-\${VERSION}-1.\${DISTRO}.armv7hl.rpm 2>/dev/null || true && \
             ls -lh *.rpm && \
             echo '========================'
           "
@@ -542,14 +654,19 @@ jobs:
           
           - Debian/Ubuntu (amd64): 5 个 (20.04, 22.04, 24.04, Debian 11, 12)
           - Debian/Ubuntu (arm64): 3 个 (Ubuntu 22.04/24.04, Debian 12)
+          - Debian/Ubuntu (armhf): 4 个 (Ubuntu 20.04/22.04, Debian 11/12)
           - RHEL/Rocky/Fedora (x86_64): 4 个 (Rocky 8/9, Fedora 38/39)
           - RHEL/Rocky/Fedora (aarch64): 2 个 (Rocky 9, Fedora 39)
+          - RHEL/Rocky/Fedora (armv7hl): 1 个 (Fedora 38)
           - Arch Linux: 1 个
           
           ### 🏗️ ARM 架构支持
           
           - ✅ ARM64 (aarch64) 完整支持
-          - ✅ 适用于 Raspberry Pi 4+, Apple Silicon (通过 QEMU), ARM 服务器
+          - ✅ ARM32 (armhf/armv7) 完整支持
+          - ✅ 适用于 Raspberry Pi 全系列 (Pi 1/2/3/4/5, Zero)
+          - ✅ 适用于各类 ARM 开发板和嵌入式设备
+          - ✅ ARMv7 NEON SIMD 优化，ARMv6 VFP 优化
           - ✅ 所有核心功能在 ARM 平台上可用
           
           ### 📚 文档

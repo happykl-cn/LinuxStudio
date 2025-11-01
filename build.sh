@@ -49,11 +49,33 @@ cd build
 ARCH=$(uname -m)
 echo -e "${YELLOW}Detected architecture: ${ARCH}${NC}"
 
+# 检测 ARM 版本（如果是 ARM32）
+if [[ "$ARCH" =~ ^arm ]]; then
+    if [ -f /proc/cpuinfo ]; then
+        ARM_VERSION=$(grep -m1 "CPU architecture" /proc/cpuinfo | awk '{print $3}')
+        echo "  ARM Version: ${ARM_VERSION}"
+        if [ -n "$ARM_VERSION" ] && [ "$ARM_VERSION" -ge 7 ]; then
+            echo "  Features: ARMv7 or higher (NEON support likely)"
+        fi
+    fi
+fi
+
 # 配置
 echo -e "${YELLOW}Configuring project...${NC}"
 if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-    echo -e "${GREEN}Building for ARM64 architecture${NC}"
+    echo -e "${GREEN}Building for ARM64 (aarch64) architecture${NC}"
     cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_PROCESSOR=aarch64
+elif [ "$ARCH" = "armv7l" ] || [ "$ARCH" = "armv7" ]; then
+    echo -e "${GREEN}Building for ARM32 (ARMv7) architecture${NC}"
+    echo -e "${GREEN}Optimizations: NEON SIMD, Hard Float${NC}"
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_PROCESSOR=armv7l
+elif [ "$ARCH" = "armv6l" ] || [ "$ARCH" = "armv6" ]; then
+    echo -e "${GREEN}Building for ARM32 (ARMv6) architecture${NC}"
+    echo -e "${YELLOW}Note: ARMv6 has limited optimizations (Raspberry Pi 1/Zero)${NC}"
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_PROCESSOR=armv6l
+elif [[ "$ARCH" =~ ^arm ]]; then
+    echo -e "${GREEN}Building for ARM32 (generic) architecture${NC}"
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_PROCESSOR=arm
 elif [ "$ARCH" = "x86_64" ]; then
     echo -e "${GREEN}Building for x86_64 architecture${NC}"
     cmake .. -DCMAKE_BUILD_TYPE=Release
