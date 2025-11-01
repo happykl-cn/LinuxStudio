@@ -102,6 +102,7 @@ find_package(Threads REQUIRED)
 
 # 检查 C++17 filesystem 支持
 include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_FLAGS "-std=c++17")
 check_cxx_source_compiles("
     #include <filesystem>
     int main() { std::filesystem::path p; return 0; }
@@ -109,6 +110,9 @@ check_cxx_source_compiles("
 
 if(NOT HAVE_FILESYSTEM_WITHOUT_LIB)
     set(NEED_FILESYSTEM_LIB TRUE)
+    message(STATUS "C++17 filesystem requires explicit linking")
+else()
+    message(STATUS "C++17 filesystem available without explicit linking")
 endif()
 
 # 源文件
@@ -258,13 +262,29 @@ else()
 endif()
 
 # 打印配置信息
+message(STATUS "")
+message(STATUS "========================================")
 message(STATUS "LinuxStudio Build Configuration:")
+message(STATUS "========================================")
 message(STATUS "  Version: ${PROJECT_VERSION}")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "  Compiler ID: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "  Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "  Compiler Path: ${CMAKE_CXX_COMPILER}")
+message(STATUS "  System: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "  System Processor: ${CMAKE_SYSTEM_PROCESSOR}")
+if(TARGET_ARCH_ARM32)
+    message(STATUS "  ARM32 Optimizations: Enabled")
+    if(TARGET_ARCH_ARM32_V7)
+        message(STATUS "    - ARMv7 with NEON")
+    elseif(TARGET_ARCH_ARM32_V6)
+        message(STATUS "    - ARMv6 with VFP")
+    endif()
+endif()
 message(STATUS "  DEB Architecture: ${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
 message(STATUS "  RPM Architecture: ${CPACK_RPM_PACKAGE_ARCHITECTURE}")
 message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "========================================")
+message(STATUS "")
 

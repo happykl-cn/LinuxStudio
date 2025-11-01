@@ -125,15 +125,18 @@ jobs:
             export DEBIAN_FRONTEND=noninteractive && \
             apt-get update && \
             apt-get install -y --no-install-recommends \
-              git build-essential cmake debhelper devscripts lsb-release ca-certificates && \
+              git build-essential g++ gcc cmake debhelper devscripts lsb-release ca-certificates && \
             echo '=== Build Environment ===' && \
             uname -m && \
-            g++ --version && \
-            cmake --version && \
+            g++ --version | head -1 && \
+            cmake --version | head -1 && \
             echo 'Target Architecture: ${{ matrix.arch }}' && \
             echo '========================' && \
             mkdir -p build && cd build && \
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+            cmake .. -DCMAKE_BUILD_TYPE=Release \
+                     -DCMAKE_INSTALL_PREFIX=/usr \
+                     -DCMAKE_C_COMPILER=gcc \
+                     -DCMAKE_CXX_COMPILER=g++ && \
             cmake --build . -j\$(nproc) && \
             export CPACK_DEBIAN_PACKAGE_ARCHITECTURE='amd64' && \
             cpack -G DEB && \
@@ -173,15 +176,18 @@ jobs:
             export DEBIAN_FRONTEND=noninteractive && \
             apt-get update && \
             apt-get install -y --no-install-recommends \
-              git build-essential cmake debhelper devscripts lsb-release ca-certificates && \
-            echo '=== Build Environment ===' && \
+              git build-essential g++ gcc cmake debhelper devscripts lsb-release ca-certificates && \
+            echo '=== Build Environment (ARM64) ===' && \
             uname -m && \
-            g++ --version && \
-            cmake --version && \
+            g++ --version | head -1 && \
+            cmake --version | head -1 && \
             echo 'Target Architecture: ${{ matrix.arch }}' && \
             echo '========================' && \
             mkdir -p build && cd build && \
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr && \
+            cmake .. -DCMAKE_BUILD_TYPE=Release \
+                     -DCMAKE_INSTALL_PREFIX=/usr \
+                     -DCMAKE_C_COMPILER=gcc \
+                     -DCMAKE_CXX_COMPILER=g++ && \
             cmake --build . -j\$(nproc) && \
             export CPACK_DEBIAN_PACKAGE_ARCHITECTURE='arm64' && \
             cpack -G DEB && \
@@ -221,16 +227,23 @@ jobs:
             export DEBIAN_FRONTEND=noninteractive && \
             apt-get update && \
             apt-get install -y --no-install-recommends \
-              git build-essential cmake debhelper devscripts lsb-release ca-certificates libatomic1 && \
+              git build-essential g++ gcc cmake debhelper devscripts lsb-release ca-certificates libatomic1 && \
             echo '=== Build Environment (ARM32) ===' && \
-            uname -m && \
-            g++ --version && \
-            cmake --version && \
+            echo 'Architecture:' && uname -m && \
+            echo 'GCC Version:' && gcc --version | head -1 && \
+            echo 'G++ Version:' && g++ --version | head -1 && \
+            echo 'CMake Version:' && cmake --version | head -1 && \
             echo 'Target Architecture: ${{ matrix.arch }} (armhf)' && \
-            cat /proc/cpuinfo | grep -i 'model\|hardware\|revision' | head -5 || true && \
+            echo 'CPU Info:' && \
+            cat /proc/cpuinfo | grep -i 'model\|hardware\|revision\|features' | head -10 || true && \
             echo '========================' && \
+            echo 'Configuring CMake...' && \
             mkdir -p build && cd build && \
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_SYSTEM_PROCESSOR=armv7l && \
+            cmake .. -DCMAKE_BUILD_TYPE=Release \
+                     -DCMAKE_INSTALL_PREFIX=/usr \
+                     -DCMAKE_SYSTEM_PROCESSOR=armv7l \
+                     -DCMAKE_C_COMPILER=gcc \
+                     -DCMAKE_CXX_COMPILER=g++ && \
             cmake --build . -j\$(nproc) && \
             export CPACK_DEBIAN_PACKAGE_ARCHITECTURE='armhf' && \
             cpack -G DEB && \
