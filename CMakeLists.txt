@@ -98,16 +98,20 @@ include_directories(
 )
 
 # 查找依赖
-# 设置 pthread 首选项（避免 -lpthreads 错误）
+# 强制使用 pthread（避免 -lpthreads 等错误）
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
 
-# 修复某些系统上 pthread 库名错误的问题
-if(CMAKE_THREAD_LIBS_INIT STREQUAL "-lpthreads")
-    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+# 在 Linux 上直接设置 pthread
+if(UNIX AND NOT APPLE)
+    set(CMAKE_THREAD_LIBS_INIT "-pthread")
     set(CMAKE_HAVE_THREADS_LIBRARY 1)
+    set(CMAKE_USE_WIN32_THREADS_INIT 0)
+    set(CMAKE_USE_PTHREADS_INIT 1)
     set(Threads_FOUND TRUE)
-    message(STATUS "Fixed pthread library name: -lpthreads -> -lpthread")
+    message(STATUS "Using pthread library (forced for Linux)")
+else()
+    find_package(Threads REQUIRED)
 endif()
 
 # 打印 Threads 信息用于调试
@@ -148,9 +152,14 @@ set(CLI_SOURCES
 
 # 创建核心库
 add_library(linuxstudio_core STATIC ${CORE_SOURCES})
-target_link_libraries(linuxstudio_core 
-    Threads::Threads
-)
+
+# 链接 pthread
+if(UNIX AND NOT APPLE)
+    target_compile_options(linuxstudio_core PRIVATE -pthread)
+    target_link_libraries(linuxstudio_core PRIVATE pthread)
+else()
+    target_link_libraries(linuxstudio_core PRIVATE Threads::Threads)
+endif()
 
 # 创建可执行文件
 add_executable(xkl ${CLI_SOURCES})
@@ -158,8 +167,15 @@ add_executable(xkl ${CLI_SOURCES})
 # 平台特定的链接库
 target_link_libraries(xkl 
     linuxstudio_core
-    Threads::Threads
 )
+
+# 链接 pthread
+if(UNIX AND NOT APPLE)
+    target_compile_options(xkl PRIVATE -pthread)
+    target_link_libraries(xkl PRIVATE pthread)
+else()
+    target_link_libraries(xkl PRIVATE Threads::Threads)
+endif()
 
 # 如果需要显式链接 filesystem 库
 if(NEED_FILESYSTEM_LIB AND PLATFORM_LINUX)

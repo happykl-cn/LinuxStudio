@@ -36,23 +36,35 @@ cmake .. -DCMAKE_C_COMPILER=gcc \
          -DCMAKE_SYSTEM_PROCESSOR=armv7l
 ```
 
-### 4. pthread 库名错误
-**问题**: CMake 查找 pthread 时使用了错误的库名 `-lpthreads`（应该是 `-lpthread`）
+### 4. pthread 库名和链接错误
+**问题**: CMake 的 `find_package(Threads)` 在 ARM32 环境中不可靠
 
 **错误信息**:
 ```
 /usr/bin/ld: cannot find -lpthreads
+Determining if the function pthread_create exists failed
 ```
 
-**解决方案**:
-```cmake
-# 设置首选项，使用 pthread flag
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
+**根本原因**: 
+- CMake 可能使用错误的库名 `-lpthreads`
+- `find_package(Threads)` 的测试代码在某些环境中失败
 
-# 修复库名
-if(CMAKE_THREAD_LIBS_INIT STREQUAL "-lpthreads")
-    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+**解决方案**: 在 Linux 上直接强制使用 pthread，跳过 CMake 的检测
+```cmake
+# 在 Linux 上直接设置 pthread（跳过不可靠的检测）
+if(UNIX AND NOT APPLE)
+    set(CMAKE_THREAD_LIBS_INIT "-pthread")
+    set(CMAKE_HAVE_THREADS_LIBRARY 1)
+    set(CMAKE_USE_PTHREADS_INIT 1)
+    set(Threads_FOUND TRUE)
+else()
+    find_package(Threads REQUIRED)
+endif()
+
+# 链接时直接使用 pthread
+if(UNIX AND NOT APPLE)
+    target_compile_options(xkl PRIVATE -pthread)
+    target_link_libraries(xkl PRIVATE pthread)
 endif()
 ```
 
