@@ -215,26 +215,12 @@ set(CPACK_PACKAGE_DESCRIPTION "LinuxStudio is a framework for managing developme
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
 
-# DEB 包配置
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Dino Studio <support@linuxstudio.org>")
-set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
-set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
-set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://linuxstudio.org")
-
-# RPM 包配置
-set(CPACK_RPM_PACKAGE_GROUP "Development/Tools")
-set(CPACK_RPM_PACKAGE_LICENSE "MIT")
-set(CPACK_RPM_PACKAGE_URL "https://linuxstudio.org")
-set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
-
-# 包含 CPack
-include(CPack)
-
-# CPack 架构设置
+# CPack 架构设置（必须在 include(CPack) 之前）
 if(TARGET_ARCH_ARM64)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "aarch64")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
+    set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
 elseif(TARGET_ARCH_ARM32)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "armv7hl")
@@ -244,9 +230,13 @@ elseif(TARGET_ARCH_ARM32)
 elseif(TARGET_ARCH_X86_64)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
+    set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
 elseif(TARGET_ARCH_X86)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "i386")
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "i686")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
+    set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
 else()
     # 自动检测
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
@@ -255,11 +245,28 @@ else()
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "armv[67]|arm")
         set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
         set(CPACK_RPM_PACKAGE_ARCHITECTURE "armv7hl")
+        set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0), libatomic1")
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
         set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
         set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
     endif()
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
+    set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
 endif()
+
+# DEB 包配置
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Dino Studio <support@linuxstudio.org>")
+set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://linuxstudio.org")
+
+# RPM 包配置
+set(CPACK_RPM_PACKAGE_GROUP "Development/Tools")
+set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+set(CPACK_RPM_PACKAGE_URL "https://linuxstudio.org")
+
+# 包含 CPack（必须在所有 CPACK_* 变量设置之后）
+include(CPack)
 
 # 打印配置信息
 message(STATUS "")

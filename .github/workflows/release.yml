@@ -243,7 +243,16 @@ jobs:
                      -DCMAKE_INSTALL_PREFIX=/usr \
                      -DCMAKE_SYSTEM_PROCESSOR=armv7l \
                      -DCMAKE_C_COMPILER=gcc \
-                     -DCMAKE_CXX_COMPILER=g++ && \
+                     -DCMAKE_CXX_COMPILER=g++ \
+                     -DCMAKE_VERBOSE_MAKEFILE=ON || { \
+              echo '=== CMake Configuration Failed ===' && \
+              echo 'CMakeOutput.log:' && \
+              cat CMakeFiles/CMakeOutput.log | tail -50 && \
+              echo 'CMakeError.log:' && \
+              cat CMakeFiles/CMakeError.log | tail -50 && \
+              exit 1; \
+            } && \
+            echo 'Building project...' && \
             cmake --build . -j\$(nproc) && \
             export CPACK_DEBIAN_PACKAGE_ARCHITECTURE='armhf' && \
             cpack -G DEB && \
