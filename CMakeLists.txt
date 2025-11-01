@@ -98,7 +98,20 @@ include_directories(
 )
 
 # 查找依赖
+# 设置 pthread 首选项（避免 -lpthreads 错误）
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+
+# 修复某些系统上 pthread 库名错误的问题
+if(CMAKE_THREAD_LIBS_INIT STREQUAL "-lpthreads")
+    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+    set(CMAKE_HAVE_THREADS_LIBRARY 1)
+    set(Threads_FOUND TRUE)
+    message(STATUS "Fixed pthread library name: -lpthreads -> -lpthread")
+endif()
+
+# 打印 Threads 信息用于调试
+message(STATUS "Threads library: ${CMAKE_THREAD_LIBS_INIT}")
 
 # 检查 C++17 filesystem 支持
 include(CheckCXXSourceCompiles)

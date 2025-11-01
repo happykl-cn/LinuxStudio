@@ -36,7 +36,27 @@ cmake .. -DCMAKE_C_COMPILER=gcc \
          -DCMAKE_SYSTEM_PROCESSOR=armv7l
 ```
 
-### 4. 增强错误诊断
+### 4. pthread 库名错误
+**问题**: CMake 查找 pthread 时使用了错误的库名 `-lpthreads`（应该是 `-lpthread`）
+
+**错误信息**:
+```
+/usr/bin/ld: cannot find -lpthreads
+```
+
+**解决方案**:
+```cmake
+# 设置首选项，使用 pthread flag
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
+# 修复库名
+if(CMAKE_THREAD_LIBS_INIT STREQUAL "-lpthreads")
+    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+endif()
+```
+
+### 5. 增强错误诊断
 **新增**: 当 CMake 配置失败时，自动输出详细日志
 ```bash
 cmake ... || {
