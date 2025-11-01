@@ -71,7 +71,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
             # ARMv6 (Raspberry Pi 1/Zero)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv6 -mfpu=vfp -mfloat-abi=hard")
             message(STATUS "   - ARMv6 with VFP support")
-        else
+        else()
             # 通用 ARM32
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfloat-abi=hard")
             message(STATUS "   - Generic ARM32 with hard float")
