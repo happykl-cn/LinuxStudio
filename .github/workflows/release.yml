@@ -239,20 +239,27 @@ jobs:
             echo 'CPU Info:' && \
             cat /proc/cpuinfo | grep -i 'model\|hardware\|revision\|features' | head -10 || true && \
             echo '========================' && \
+            echo 'Cleaning environment...' && \
+            unset CC CXX CFLAGS CXXFLAGS LDFLAGS && \
+            export CC=/usr/bin/gcc && \
+            export CXX=/usr/bin/g++ && \
+            echo 'CC='$CC && \
+            echo 'CXX='$CXX && \
             echo 'Configuring CMake...' && \
-            rm -rf build && \
+            rm -rf build CMakeCache.txt CMakeFiles && \
             mkdir -p build && cd build && \
-            cmake .. \
+            /usr/bin/cmake .. \
                      -DCMAKE_BUILD_TYPE=Release \
                      -DCMAKE_INSTALL_PREFIX=/usr \
+                     -DCMAKE_SYSTEM_NAME=Linux \
                      -DCMAKE_SYSTEM_PROCESSOR=armv7l \
                      -DCMAKE_C_COMPILER=/usr/bin/gcc \
                      -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+                     -DCMAKE_C_COMPILER_WORKS=1 \
+                     -DCMAKE_CXX_COMPILER_WORKS=1 \
                      -DCMAKE_EXE_LINKER_FLAGS='-pthread' \
                      -DCMAKE_SHARED_LINKER_FLAGS='-pthread' \
-                     -DCMAKE_VERBOSE_MAKEFILE=ON \
-                     -DCMAKE_FORCE_C_COMPILER=TRUE \
-                     -DCMAKE_FORCE_CXX_COMPILER=TRUE || { \
+                     -DCMAKE_VERBOSE_MAKEFILE=ON || { \
               echo '=== CMake Configuration Failed ===' && \
               echo 'CMakeOutput.log:' && \
               cat CMakeFiles/CMakeOutput.log | tail -50 && \
