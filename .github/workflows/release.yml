@@ -239,27 +239,29 @@ jobs:
             echo 'CPU Info:' && \
             cat /proc/cpuinfo | grep -i 'model\|hardware\|revision\|features' | head -10 || true && \
             echo '========================' && \
-            echo 'Cleaning environment...' && \
-            unset CC CXX CFLAGS CXXFLAGS LDFLAGS && \
-            export CC=/usr/bin/gcc && \
-            export CXX=/usr/bin/g++ && \
-            echo 'CC='$CC && \
-            echo 'CXX='$CXX && \
-            echo 'Configuring CMake...' && \
+            echo 'Creating ARM32 toolchain file...' && \
+            mkdir -p cmake && \
+            echo 'set(CMAKE_SYSTEM_NAME Linux)' > cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_SYSTEM_PROCESSOR armv7l)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_C_COMPILER /usr/bin/gcc)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_COMPILER /usr/bin/g++)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_C_COMPILER_WORKS TRUE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_COMPILER_WORKS TRUE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_C_COMPILER_ID GNU)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_COMPILER_ID GNU)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_COMPILER_IS_GNUCXX 1)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_STANDARD 17)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_STANDARD_REQUIRED ON)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_EXTENSIONS OFF)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_EXE_LINKER_FLAGS \"-pthread\" CACHE STRING \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_SHARED_LINKER_FLAGS \"-pthread\" CACHE STRING \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
+            cat cmake/arm32-toolchain.cmake && \
+            echo 'Configuring CMake with toolchain file...' && \
             rm -rf build CMakeCache.txt CMakeFiles && \
             mkdir -p build && cd build && \
-            /usr/bin/cmake .. \
+            cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/arm32-toolchain.cmake \
                      -DCMAKE_BUILD_TYPE=Release \
                      -DCMAKE_INSTALL_PREFIX=/usr \
-                     -DCMAKE_SYSTEM_NAME=Linux \
-                     -DCMAKE_SYSTEM_PROCESSOR=armv7l \
-                     -DCMAKE_C_COMPILER=/usr/bin/gcc \
-                     -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
-                     -DCMAKE_CXX_STANDARD=17 \
-                     -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-                     -DCMAKE_CXX_EXTENSIONS=OFF \
-                     -DCMAKE_EXE_LINKER_FLAGS='-pthread' \
-                     -DCMAKE_SHARED_LINKER_FLAGS='-pthread' \
                      -DCMAKE_VERBOSE_MAKEFILE=ON || { \
               echo '=== CMake Configuration Failed ===' && \
               echo 'CMakeOutput.log:' && \
