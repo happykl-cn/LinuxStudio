@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![LinuxStudio Logo](https://img.shields.io/badge/LinuxStudio-v1.0.0-blue?style=for-the-badge&logo=linux)
+![LinuxStudio Logo](https://img.shields.io/badge/LinuxStudio-v1.1.0-blue?style=for-the-badge&logo=linux)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![C++](https://img.shields.io/badge/C++-17/20-orange?style=for-the-badge&logo=cplusplus)](https://isocpp.org/)
 
