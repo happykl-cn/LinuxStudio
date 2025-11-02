@@ -4,7 +4,7 @@
 
 ```bash
 # 下载包
-wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio_1.0.0_debian-11_armhf.deb
+wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio_1.1.1_debian-11_armhf.deb
 
 # 安装
 sudo dpkg -i linuxstudio_*.deb
@@ -21,7 +21,7 @@ xkl --version
 # 以 root 身份运行
 
 # 1. 解压包
-ar x linuxstudio_1.0.0_debian-11_armhf.deb
+ar x linuxstudio_1.1.1_debian-11_armhf.deb
 tar -xzf data.tar.gz -C /
 
 # 2. 创建目录
@@ -34,7 +34,7 @@ mkdir -p /etc/linuxstudio
 
 # 3. 配置
 cat > /etc/linuxstudio/config.yaml <<'EOF'
-version: 1.0.0
+version: 1.1.1
 install_path: /opt/linuxstudio
 log_level: info
 auto_update_check: true
