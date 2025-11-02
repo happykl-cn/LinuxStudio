@@ -43,14 +43,20 @@ sudo apt-get install linuxstudio
 ### 方法 2：下载包直接安装
 
 ```bash
-# Ubuntu/Debian
+# Ubuntu/Debian (x86_64)
 wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio_1.0.0_ubuntu-22.04_amd64.deb
+sudo dpkg -i linuxstudio_*.deb
+
+# Ubuntu/Debian (ARM32 - 树莓派/嵌入式设备)
+wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio_1.0.0_debian-11_armhf.deb
 sudo dpkg -i linuxstudio_*.deb
 
 # CentOS/RHEL
 wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio-1.0.0-1.el7.x86_64.rpm
 sudo rpm -ivh linuxstudio-*.rpm
 ```
+
+> 📱 **嵌入式设备用户**：如果您的系统没有 `sudo` 或完整的包管理器（如 STM32MP1、OpenWrt 等），请参考 [嵌入式兼容性指南](EMBEDDED_COMPATIBILITY.md) 进行手动安装。
 
 ### 方法 3：从源码编译
 
@@ -184,10 +190,12 @@ xkl scene apply web            # 应用场景（交互式选择组件）
 ## 🛠️ 技术栈
 
 - **核心引擎**：C++17, CMake 3.15+
-- **CLI 工具**：Bash 5.0+ / C++ (xkl)
+- **CLI 工具**：POSIX sh / C++ (xkl)
 - **打包**：DEB, RPM, AppImage
 - **CI/CD**：GitHub Actions
 - **支持平台**：Ubuntu, Debian, CentOS, Fedora, Arch Linux
+- **支持架构**：x86_64, ARM64 (aarch64), ARM32 (armhf/armv7)
+- **嵌入式支持**：STM32MP1, Raspberry Pi, BeagleBone 等 - [详见文档](EMBEDDED_COMPATIBILITY.md)
 
 ---
 

@@ -1,55 +1,57 @@
-#!/bin/bash
+#!/bin/sh
 #
 # LinuxStudio Post-Installation Script
+# Compatible with minimal embedded systems (no bash, no sudo required)
 #
 
 set -e
 
 case "$1" in
     configure)
-        echo "📦 Configuring LinuxStudio..."
+        echo "Configuring LinuxStudio..."
         
         # 创建符号链接（向后兼容）
         if [ ! -L /usr/bin/linuxstudio ]; then
-            ln -sf /usr/bin/xkl /usr/bin/linuxstudio
+            ln -sf /usr/bin/xkl /usr/bin/linuxstudio 2>/dev/null || true
         fi
         
         # 设置权限
-        chmod +x /usr/bin/xkl
+        chmod +x /usr/bin/xkl 2>/dev/null || true
         
-        # 创建运行时目录结构
-        mkdir -p /opt/linuxstudio/{plugins,components,data,logs,scenes}
+        # 创建运行时目录结构（如果有权限）
+        mkdir -p /opt/linuxstudio/plugins 2>/dev/null || true
+        mkdir -p /opt/linuxstudio/components 2>/dev/null || true
+        mkdir -p /opt/linuxstudio/data 2>/dev/null || true
+        mkdir -p /opt/linuxstudio/logs 2>/dev/null || true
+        mkdir -p /opt/linuxstudio/scenes 2>/dev/null || true
         
-        # 创建配置文件（如果不存在）
+        # 创建配置文件（如果不存在且有权限）
         if [ ! -f /etc/linuxstudio/config.yaml ]; then
-            mkdir -p /etc/linuxstudio
-            cat > /etc/linuxstudio/config.yaml <<'EOF'
+            mkdir -p /etc/linuxstudio 2>/dev/null || true
+            if [ -w /etc/linuxstudio ] || [ -w /etc ]; then
+                cat > /etc/linuxstudio/config.yaml 2>/dev/null <<'EOF' || true
 # LinuxStudio Configuration
 version: 1.0.0
 install_path: /opt/linuxstudio
 log_level: info
 auto_update_check: true
 EOF
+            fi
         fi
         
-        # 初始化框架
+        # 初始化框架（如果可执行）
         if [ -x /usr/bin/xkl ]; then
             /usr/bin/xkl init --quiet 2>/dev/null || true
         fi
         
         echo ""
-        echo "╔═══════════════════════════════════════════════════════╗"
-        echo "║  ✅ LinuxStudio installed successfully!              ║"
-        echo "╚═══════════════════════════════════════════════════════╝"
+        echo "==================================================="
+        echo "  LinuxStudio installed successfully!"
+        echo "==================================================="
         echo ""
-        echo "📚 Quick Start:"
-        echo "   xkl --help              # Show help"
-        echo "   xkl status              # Check system status"
-        echo "   xkl scene apply web     # Apply web development scene"
-        echo "   xkl plugin list         # List available plugins"
-        echo ""
-        echo "📖 Documentation: https://docs.linuxstudio.org"
-        echo "💬 Community: https://community.linuxstudio.org"
+        echo "Quick Start:"
+        echo "  xkl --help              # Show help"
+        echo "  xkl status              # Check system status"
         echo ""
         ;;
         
@@ -57,7 +59,7 @@ EOF
         ;;
         
     *)
-        echo "postinst called with unknown argument \`$1'" >&2
+        echo "postinst called with unknown argument '$1'" >&2
         exit 1
         ;;
 esac

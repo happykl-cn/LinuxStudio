@@ -154,9 +154,18 @@ if(NEED_FILESYSTEM_LIB AND PLATFORM_LINUX)
     target_link_libraries(xkl stdc++fs)
 endif()
 
-# ARM32 特定链接库（某些旧版本需要显式链接 atomic）
+# ARM32 特定链接库（尝试链接 atomic，如果不存在则跳过）
 if(TARGET_ARCH_ARM32)
-    target_link_libraries(xkl atomic)
+    # 检查 libatomic 是否存在
+    find_library(LIBATOMIC_LIBRARY NAMES atomic libatomic.so.1 libatomic.a)
+    if(LIBATOMIC_LIBRARY)
+        message(STATUS "Found libatomic: ${LIBATOMIC_LIBRARY}")
+        target_link_libraries(xkl ${LIBATOMIC_LIBRARY})
+    else()
+        message(STATUS "libatomic not found, skipping (may work with built-in atomics)")
+        # 添加编译器内置的 atomic 支持
+        target_compile_options(xkl PRIVATE -march=armv7-a)
+    endif()
 endif()
 
 # 安装规则
@@ -220,24 +229,15 @@ set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
 if(TARGET_ARCH_ARM64)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "aarch64")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
-    set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
 elseif(TARGET_ARCH_ARM32)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "armv7hl")
-    # ARM32 特定的包依赖
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0), libatomic1")
-    set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0, libatomic")
 elseif(TARGET_ARCH_X86_64)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
-    set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
 elseif(TARGET_ARCH_X86)
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "i386")
     set(CPACK_RPM_PACKAGE_ARCHITECTURE "i686")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
-    set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
 else()
     # 自动检测
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
@@ -246,14 +246,17 @@ else()
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "armv[67]|arm")
         set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
         set(CPACK_RPM_PACKAGE_ARCHITECTURE "armv7hl")
-        set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0), libatomic1")
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
         set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
         set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
     endif()
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "bash (>= 5.0)")
-    set(CPACK_RPM_PACKAGE_REQUIRES "bash >= 5.0")
 endif()
+
+# 最小化依赖 - 只依赖最基本的包（兼容嵌入式系统）
+# 不依赖 bash，因为嵌入式系统可能只有 sh
+# 不依赖 libatomic1，因为很多嵌入式系统没有这个包
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6")
+set(CPACK_RPM_PACKAGE_REQUIRES "glibc, libstdc++")
 
 # DEB 包配置
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Dino Studio <support@linuxstudio.org>")

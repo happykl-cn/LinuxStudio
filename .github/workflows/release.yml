@@ -225,11 +225,11 @@ jobs:
           EOF
               echo '=== Updated Debian sources to: '\${CODENAME}' ==='
             fi && \
-            # 安装依赖（ARM32 需要 libatomic1）
+            # 安装依赖（最小化依赖以兼容嵌入式系统）
             export DEBIAN_FRONTEND=noninteractive && \
             apt-get update && \
             apt-get install -y --no-install-recommends \
-              git build-essential g++ gcc cmake debhelper devscripts lsb-release ca-certificates libatomic1 && \
+              git build-essential g++ gcc cmake debhelper devscripts lsb-release ca-certificates && \
             echo '=== Build Environment (ARM32) ===' && \
             echo 'Architecture:' && uname -m && \
             echo 'GCC Version:' && gcc --version | head -1 && \
@@ -617,6 +617,23 @@ jobs:
           sudo dpkg -i linuxstudio_*.deb
           \`\`\`
           
+          #### Debian/Ubuntu (ARM32/armhf) - 树莓派/嵌入式设备
+          \`\`\`bash
+          # 标准安装（有 sudo 的系统）
+          wget https://github.com/happykl-cn/LinuxStudio/releases/download/${{ github.ref_name }}/linuxstudio_${{ steps.version.outputs.version }}_debian-11_armhf.deb
+          sudo dpkg -i linuxstudio_*.deb
+          
+          # 嵌入式系统手动安装（无 sudo/最小化系统，如 STM32MP1）
+          # 以 root 身份运行：
+          ar x linuxstudio_*.deb
+          tar -xzf data.tar.gz -C /
+          mkdir -p /opt/linuxstudio /etc/linuxstudio
+          chmod +x /usr/bin/xkl
+          ln -sf /usr/bin/xkl /usr/bin/linuxstudio
+          
+          # 详细说明请参考仓库中的 EMBEDDED_COMPATIBILITY.md
+          \`\`\`
+          
           #### CentOS/RHEL/Rocky (x86_64)
           \`\`\`bash
           # 配置仓库（推荐）
@@ -663,10 +680,14 @@ jobs:
           - ✅ **ARM64 (aarch64)** 完整支持
             - Debian/Ubuntu/Fedora/Rocky Linux
             - Raspberry Pi 4/5, ARM 服务器
-          - ✅ **ARM32 (armhf/armv7)** 完整支持
+          - ✅ **ARM32 (armhf/armv7)** 完整支持 + 嵌入式优化
             - Debian/Ubuntu 系统
             - Raspberry Pi 全系列 (Pi 1/2/3/4, Zero/Zero 2)
-            - 各类 ARM32 开发板和嵌入式设备
+            - STM32MP1 系列嵌入式设备 (如 ATK-MP157)
+            - BeagleBone, 各类 ARM32 开发板
+            - **最小化依赖**: 仅需 libc6 + libstdc++6
+            - **无需 bash/sudo**: 兼容 BusyBox 和最小化系统
+            - **条件链接 libatomic**: 自动适配不同系统环境
           - ✅ **性能优化**
             - ARMv7: NEON SIMD 指令集加速
             - ARMv6: VFP 浮点运算加速
