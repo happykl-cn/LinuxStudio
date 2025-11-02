@@ -203,6 +203,8 @@ xkl scene apply web            # 应用场景（交互式选择组件）
 
 - 📘 **[开发者指南](DEVELOPER_GUIDE.md)** - 完整开发、编译、打包、发布指南
 - 📗 **[安装指南](INSTALLATION_GUIDE.md)** - 详细安装步骤和场景选择
+- 🔄 **[升级指南](UPGRADE_GUIDE.md)** - 版本升级、回滚和常见问题
+- 📱 **[嵌入式兼容性](EMBEDDED_COMPATIBILITY.md)** - 嵌入式设备安装和配置
 
 ---
 
