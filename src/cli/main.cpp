@@ -134,7 +134,7 @@ int main(int argc, char* argv[]) {
 }
 
 void showHelp() {
-    std::cout << R"(LinuxStudio CLI v1.0.0 (C++ Core)
+    std::cout << R"(LinuxStudio CLI v1.1.1 (C++ Core)
 High-Performance Linux Environment Manager
 
 Usage: xkl <command> [options]

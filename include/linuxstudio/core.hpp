@@ -125,7 +125,7 @@ public:
     /**
      * @brief 获取版本号
      */
-    std::string getVersion() const { return "1.0.0"; }
+    std::string getVersion() const { return "1.1.1"; }
     
 private:
     // 私有构造函数（单例）

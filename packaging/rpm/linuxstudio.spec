@@ -1,5 +1,5 @@
 Name:           linuxstudio
-Version:        1.0.0
+Version:        1.1.1
 Release:        1%{?dist}
 Summary:        High-Performance Linux Environment Manager
 
@@ -56,7 +56,7 @@ mkdir -p %{buildroot}/etc/linuxstudio
 # 创建配置文件
 cat > %{buildroot}/etc/linuxstudio/config.yaml <<'EOF'
 # LinuxStudio Configuration
-version: 1.0.0
+version: 1.1.1
 install_path: /opt/linuxstudio
 log_level: info
 auto_update_check: true

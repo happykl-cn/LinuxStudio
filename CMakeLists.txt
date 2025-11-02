@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(LinuxStudio 
-    VERSION 1.0.0
+    VERSION 1.1.1
     DESCRIPTION "High-Performance Linux Environment Manager"
     LANGUAGES CXX
 )
@@ -203,7 +203,7 @@ install(CODE "
     set(CONFIG_FILE \"\$ENV{DESTDIR}/etc/linuxstudio/config.yaml\")
     if(NOT EXISTS \"\${CONFIG_FILE}\")
         file(WRITE \"\${CONFIG_FILE}\" \"# LinuxStudio Configuration
-version: 1.0.0
+version: 1.1.1
 install_path: /opt/linuxstudio
 log_level: info
 auto_update_check: true

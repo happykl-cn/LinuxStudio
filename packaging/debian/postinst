@@ -8,17 +8,24 @@ set -e
 
 case "$1" in
     configure)
-        echo "Configuring LinuxStudio..."
+        echo ""
+        echo "==================================================="
+        echo "  Configuring LinuxStudio..."
+        echo "==================================================="
+        echo ""
         
         # 创建符号链接（向后兼容）
+        echo "→ Creating symbolic links..."
         if [ ! -L /usr/bin/linuxstudio ]; then
             ln -sf /usr/bin/xkl /usr/bin/linuxstudio 2>/dev/null || true
         fi
         
         # 设置权限
+        echo "→ Setting permissions..."
         chmod +x /usr/bin/xkl 2>/dev/null || true
         
         # 创建运行时目录结构（如果有权限）
+        echo "→ Creating directory structure..."
         mkdir -p /opt/linuxstudio/plugins 2>/dev/null || true
         mkdir -p /opt/linuxstudio/components 2>/dev/null || true
         mkdir -p /opt/linuxstudio/data 2>/dev/null || true
@@ -26,12 +33,13 @@ case "$1" in
         mkdir -p /opt/linuxstudio/scenes 2>/dev/null || true
         
         # 创建配置文件（如果不存在且有权限）
+        echo "→ Initializing configuration..."
         if [ ! -f /etc/linuxstudio/config.yaml ]; then
             mkdir -p /etc/linuxstudio 2>/dev/null || true
             if [ -w /etc/linuxstudio ] || [ -w /etc ]; then
                 cat > /etc/linuxstudio/config.yaml 2>/dev/null <<'EOF' || true
 # LinuxStudio Configuration
-version: 1.0.0
+version: 1.1.1
 install_path: /opt/linuxstudio
 log_level: info
 auto_update_check: true
@@ -40,18 +48,25 @@ EOF
         fi
         
         # 初始化框架（如果可执行）
+        echo "→ Initializing LinuxStudio framework..."
         if [ -x /usr/bin/xkl ]; then
-            /usr/bin/xkl init --quiet 2>/dev/null || true
+            /usr/bin/xkl init --quiet 2>/dev/null || echo "  (Framework initialization skipped - will run on first use)"
         fi
         
         echo ""
         echo "==================================================="
-        echo "  LinuxStudio installed successfully!"
+        echo "  ✓ LinuxStudio installed successfully!"
         echo "==================================================="
         echo ""
         echo "Quick Start:"
         echo "  xkl --help              # Show help"
         echo "  xkl status              # Check system status"
+        echo "  xkl scene list          # List available scenes"
+        echo "  xkl plugin list         # List available plugins"
+        echo ""
+        echo "Documentation:"
+        echo "  README: /usr/share/doc/linuxstudio/README.md"
+        echo "  Online: https://docs.linuxstudio.org"
         echo ""
         ;;
         
