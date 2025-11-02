@@ -245,16 +245,22 @@ jobs:
             echo 'set(CMAKE_SYSTEM_PROCESSOR armv7l)' >> cmake/arm32-toolchain.cmake && \
             echo 'set(CMAKE_C_COMPILER /usr/bin/gcc)' >> cmake/arm32-toolchain.cmake && \
             echo 'set(CMAKE_CXX_COMPILER /usr/bin/g++)' >> cmake/arm32-toolchain.cmake && \
-            echo 'set(CMAKE_C_COMPILER_WORKS TRUE)' >> cmake/arm32-toolchain.cmake && \
-            echo 'set(CMAKE_CXX_COMPILER_WORKS TRUE)' >> cmake/arm32-toolchain.cmake && \
-            echo 'set(CMAKE_C_COMPILER_ID GNU)' >> cmake/arm32-toolchain.cmake && \
-            echo 'set(CMAKE_CXX_COMPILER_ID GNU)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_C_COMPILER_FORCED TRUE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_COMPILER_FORCED TRUE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_C_COMPILER_WORKS TRUE CACHE BOOL \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_COMPILER_WORKS TRUE CACHE BOOL \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_C_COMPILER_ID GNU CACHE STRING \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_COMPILER_ID GNU CACHE STRING \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_C_COMPILER_ID_RUN TRUE CACHE BOOL \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_CXX_COMPILER_ID_RUN TRUE CACHE BOOL \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
             echo 'set(CMAKE_COMPILER_IS_GNUCXX 1)' >> cmake/arm32-toolchain.cmake && \
+            echo 'set(CMAKE_COMPILER_IS_GNUCC 1)' >> cmake/arm32-toolchain.cmake && \
             echo 'set(CMAKE_CXX_STANDARD 17)' >> cmake/arm32-toolchain.cmake && \
             echo 'set(CMAKE_CXX_STANDARD_REQUIRED ON)' >> cmake/arm32-toolchain.cmake && \
             echo 'set(CMAKE_CXX_EXTENSIONS OFF)' >> cmake/arm32-toolchain.cmake && \
             echo 'set(CMAKE_EXE_LINKER_FLAGS \"-pthread\" CACHE STRING \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
             echo 'set(CMAKE_SHARED_LINKER_FLAGS \"-pthread\" CACHE STRING \"\" FORCE)' >> cmake/arm32-toolchain.cmake && \
+            echo 'Toolchain file contents:' && \
             cat cmake/arm32-toolchain.cmake && \
             echo 'Configuring CMake with toolchain file...' && \
             rm -rf build CMakeCache.txt CMakeFiles && \
