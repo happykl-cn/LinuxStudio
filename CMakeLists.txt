@@ -264,6 +264,11 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://linuxstudio.org")
 
+# DEB 包控制脚本
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA 
+    "${CMAKE_SOURCE_DIR}/packaging/debian/postinst"
+)
+
 # RPM 包配置
 set(CPACK_RPM_PACKAGE_GROUP "Development/Tools")
 set(CPACK_RPM_PACKAGE_LICENSE "MIT")
