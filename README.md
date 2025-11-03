@@ -2,13 +2,13 @@
 
 <div align="center">
 
-![LinuxStudio Logo](https://img.shields.io/badge/LinuxStudio-v1.1.0-blue?style=for-the-badge&logo=linux)
+![LinuxStudio Logo](https://img.shields.io/badge/LinuxStudio-v1.1.2-blue?style=for-the-badge&logo=linux)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![C++](https://img.shields.io/badge/C++-17/20-orange?style=for-the-badge&logo=cplusplus)](https://isocpp.org/)
+[![C++](https://img.shields.io/badge/C++-17-orange?style=for-the-badge&logo=cplusplus)](https://isocpp.org/)
 
 **高性能、模块化的 Linux 环境管理框架**
 
-[快速开始](#快速开始) • [开发者指南](DEVELOPER_GUIDE.md) • [安装详解](INSTALLATION_GUIDE.md)
+[快速开始](#-快速开始) • [完整文档](docs/) • [用户指南](docs/USER_GUIDE.md) • [开发者指南](docs/DEVELOPER_GUIDE.md)
 
 </div>
 
@@ -30,35 +30,38 @@
 
 ## 📦 快速开始
 
-### 方法 1：系统包管理器安装（推荐）
+### 一键安装（推荐）
 
 ```bash
-# 配置仓库
-curl -fsSL https://packages.linuxstudio.org/setup.sh | sudo bash
+# 中文版
+curl -fsSL https://linuxstudio.org/heaven-cn.sh | sudo bash
 
-# 安装
-sudo apt-get install linuxstudio
+# 英文版
+curl -fsSL https://linuxstudio.org/heaven.sh | sudo bash
+
+# 嵌入式系统（跳过 SSL 验证）
+curl -fsSLk https://linuxstudio.org/heaven-cn.sh | bash
 ```
 
-### 方法 2：下载包直接安装
+### 手动下载安装
 
 ```bash
 # Ubuntu/Debian (x86_64)
-wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio_1.0.0_ubuntu-22.04_amd64.deb
+wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio_1.1.2_debian-11_amd64.deb
 sudo dpkg -i linuxstudio_*.deb
 
 # Ubuntu/Debian (ARM32 - 树莓派/嵌入式设备)
-wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio_1.0.0_debian-11_armhf.deb
+wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio_1.1.2_debian-11_armhf.deb
 sudo dpkg -i linuxstudio_*.deb
 
-# CentOS/RHEL
-wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio-1.0.0-1.el7.x86_64.rpm
-sudo rpm -ivh linuxstudio-*.rpm
+# CentOS/RHEL/Rocky Linux
+wget https://github.com/happykl-cn/LinuxStudio/releases/latest/download/linuxstudio-1.1.2-1.rockylinux-9.x86_64.rpm
+sudo rpm -Uvh linuxstudio-*.rpm
 ```
 
-> 📱 **嵌入式设备用户**：如果您的系统没有 `sudo` 或完整的包管理器（如 STM32MP1、OpenWrt 等），请参考 [嵌入式兼容性指南](EMBEDDED_COMPATIBILITY.md) 进行手动安装。
+> 📱 **嵌入式设备用户**：STM32MP1、Raspberry Pi、BeagleBone等设备已完全支持。详见 [用户指南 - 嵌入式系统](docs/USER_GUIDE.md#嵌入式系统)
 
-### 方法 3：从源码编译
+### 从源码编译
 
 ```bash
 git clone https://github.com/happykl-cn/LinuxStudio.git
@@ -67,6 +70,8 @@ cd LinuxStudio
 cd build
 sudo cmake --install .
 ```
+
+📖 **完整安装指南**: [docs/INSTALLATION.md](docs/INSTALLATION.md)
 
 ---
 
@@ -189,22 +194,23 @@ xkl scene apply web            # 应用场景（交互式选择组件）
 
 ## 🛠️ 技术栈
 
-- **核心引擎**：C++17, CMake 3.15+
-- **CLI 工具**：POSIX sh / C++ (xkl)
-- **打包**：DEB, RPM, AppImage
+- **核心引擎**：C++17, CMake 3.10+
+- **CLI 工具**：C++ (xkl), POSIX sh 安装脚本
+- **打包**：DEB, RPM 多架构
 - **CI/CD**：GitHub Actions
-- **支持平台**：Ubuntu, Debian, CentOS, Fedora, Arch Linux
-- **支持架构**：x86_64, ARM64 (aarch64), ARM32 (armhf/armv7)
-- **嵌入式支持**：STM32MP1, Raspberry Pi, BeagleBone 等 - [详见文档](EMBEDDED_COMPATIBILITY.md)
+- **支持平台**：Ubuntu, Debian, CentOS, Fedora, Arch, openSUSE, OpenSTLinux
+- **支持架构**：x86_64, ARM64 (aarch64), ARM32 (armhf/armv7/armv6)
+- **嵌入式支持**：STM32MP1, Raspberry Pi, BeagleBone, Yocto/Buildroot
+- **最小依赖**：仅需 libc6 + libstdc++6
 
 ---
 
 ## 📚 文档
 
-- 📘 **[开发者指南](DEVELOPER_GUIDE.md)** - 完整开发、编译、打包、发布指南
-- 📗 **[安装指南](INSTALLATION_GUIDE.md)** - 详细安装步骤和场景选择
-- 🔄 **[升级指南](UPGRADE_GUIDE.md)** - 版本升级、回滚和常见问题
-- 📱 **[嵌入式兼容性](EMBEDDED_COMPATIBILITY.md)** - 嵌入式设备安装和配置
+- 📘 **[用户指南](docs/USER_GUIDE.md)** - 升级、调试、嵌入式系统完整指南
+- 📗 **[安装指南](docs/INSTALLATION.md)** - 详细安装步骤和多种安装方式
+- 👨‍💻 **[开发者指南](docs/DEVELOPER_GUIDE.md)** - 完整开发、编译、打包、发布流程
+- 📋 **[更新日志](docs/CHANGELOG.md)** - 版本更新历史和新功能说明
 
 ---
 
@@ -240,12 +246,15 @@ git push origin feature/my-feature
 
 ## 📊 项目状态
 
-### 最新版本：v1.0.0
+### 最新版本：v1.1.2
 
-- ✅ C++ 核心引擎
+- ✅ C++ 核心引擎（C++17）
 - ✅ 9 大开发场景
 - ✅ 插件管理系统
-- ✅ DEB/RPM 打包
+- ✅ 场景命令完整实现
+- ✅ 中文/英文本地化
+- ✅ 嵌入式系统完全支持
+- ✅ DEB/RPM 多架构打包
 - ✅ GitHub Actions CI/CD
 - 🚧 Web GUI（开发中）
 - 📅 社区市场（计划中）
