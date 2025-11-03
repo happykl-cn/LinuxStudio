@@ -371,3 +371,4 @@ cat /etc/linuxstudio/config.yaml
 **支持系统**: Ubuntu, Debian, CentOS, Rocky Linux, Fedora  
 **支持架构**: x86_64, ARM64, ARM32  
 **嵌入式支持**: STM32MP1, Raspberry Pi, BeagleBone, 通用 ARM32
+

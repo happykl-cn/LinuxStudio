@@ -4,6 +4,8 @@
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 // 平台特定头文件
 #ifdef __linux__
@@ -41,6 +43,30 @@ bool CoreEngine::initialize() {
     if (initialized_) {
         return true;
     }
+    
+    // 确保日志目录存在并设置日志文件路径
+    #ifdef __linux__
+        // 创建日志目录（如果不存在）
+        struct stat info;
+        const char* baseDir = "/opt/linuxstudio";
+        const char* logDir = "/opt/linuxstudio/logs";
+        
+        // 检查并创建基础目录
+        if (stat(baseDir, &info) != 0) {
+            mkdir(baseDir, 0755);
+        }
+        
+        // 检查并创建日志目录
+        if (stat(logDir, &info) != 0) {
+            mkdir(logDir, 0755);
+        }
+        
+        // 如果目录存在（或创建成功），设置日志文件
+        if (stat(logDir, &info) == 0 && S_ISDIR(info.st_mode)) {
+            logger_->setLogFile("/opt/linuxstudio/logs/linuxstudio.log");
+        }
+        // 如果目录不存在或创建失败（权限问题），跳过文件日志（只输出到控制台）
+    #endif
     
     logger_->info("Initializing LinuxStudio Framework...");
     

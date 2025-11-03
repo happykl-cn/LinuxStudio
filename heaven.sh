@@ -75,6 +75,71 @@ info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 
+# Safe download functions with automatic SSL certificate handling (embedded systems compatible)
+safe_curl() {
+    local url=$1
+    local output=$2
+    
+    # Try normal download first
+    if curl -fsSL "$url" -o "$output" 2>/dev/null; then
+        return 0
+    fi
+    
+    # If failed, check for SSL errors
+    local curl_error=$(curl -fsSL "$url" -o "$output" 2>&1)
+    if echo "$curl_error" | grep -qi "certificate\|SSL\|TLS\|verification failed"; then
+        warning "SSL certificate verification failed, skipping verification (embedded compatibility mode)..."
+        if curl -fsSLk "$url" -o "$output" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
+# Safe wget function
+safe_wget() {
+    local url=$1
+    local output=$2
+    
+    # Try normal download first
+    if wget -q "$url" -O "$output" 2>/dev/null; then
+        return 0
+    fi
+    
+    # If failed, try skipping certificate verification
+    local wget_error=$(wget "$url" -O "$output" 2>&1)
+    if echo "$wget_error" | grep -qi "certificate\|SSL\|TLS\|verification failed\|certificates.crt"; then
+        warning "SSL certificate verification failed, skipping verification (embedded compatibility mode)..."
+        if wget --no-check-certificate -q "$url" -O "$output" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
+# Safe pipe curl (for executing scripts directly)
+safe_curl_pipe() {
+    local url=$1
+    
+    # Try normal download first
+    if curl -fsSL "$url" 2>/dev/null | bash; then
+        return 0
+    fi
+    
+    # Check for errors
+    local test_output=$(curl -fsSL "$url" 2>&1)
+    if echo "$test_output" | grep -qi "certificate\|SSL\|TLS\|verification failed"; then
+        warning "SSL certificate verification failed, skipping verification (embedded compatibility mode)..."
+        if curl -fsSLk "$url" 2>/dev/null | bash; then
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
 # Post-installation setup function (must be defined before use)
 post_install_setup() {
     echo ""
@@ -378,8 +443,8 @@ echo ""
 info "📦 Method 1: Installing from package repository..."
 echo ""
 
-# Download and run setup.sh
-if curl -fsSL https://raw.githubusercontent.com/happykl-cn/LinuxStudio/main/packaging/setup.sh 2>/dev/null | bash; then
+# Download and run setup.sh (using safe download function)
+if safe_curl_pipe https://raw.githubusercontent.com/happykl-cn/LinuxStudio/main/packaging/setup.sh; then
     info "Repository configured successfully"
     echo ""
     
@@ -428,15 +493,22 @@ if curl -fsSL https://raw.githubusercontent.com/happykl-cn/LinuxStudio/main/pack
             if command -v zypper &>/dev/null; then
                 info "Installing via zypper..."
                 if zypper install -y linuxstudio 2>/dev/null; then
-                    success "LinuxStudio installed successfully!"
+                    post_install_setup
                     exit 0
                 fi
             else
                 warning "zypper not found"
             fi
             ;;
+        openstlinux*|yocto*)
+            # OpenSTLinux / Yocto systems usually use opkg or similar lightweight package managers
+            # but most don't support standard package manager installation
+            info "Detected OpenSTLinux/Yocto system, will use embedded installation method"
+            warning "OpenSTLinux systems don't support standard package manager installation, skipping Method 1"
+            ;;
         *)
             warning "Unsupported OS for package installation: $OS"
+            info "Will try other installation methods..."
             ;;
     esac
 fi
@@ -462,10 +534,25 @@ case $ARCH in
         ARCH_SUFFIX="arm64"
         RPM_ARCH="aarch64"
         ;;
+    armv7l|armv7|armhf)
+        ARCH_SUFFIX="armhf"
+        RPM_ARCH="armv7hl"  # RPM uses armv7hl
+        ;;
+    armv6l|armv6)
+        ARCH_SUFFIX="armhf"
+        RPM_ARCH="armv6hl"
+        ;;
     *)
-        ARCH_SUFFIX="amd64"  # 默认尝试
-        RPM_ARCH="x86_64"
-        warning "Unknown architecture: $ARCH, trying default"
+        # For unknown architectures, if in embedded mode, try armhf
+        if [ "$INSTALLATION_MODE" = "embedded" ] || [ "$EMBEDDED_SYSTEM" = true ]; then
+            ARCH_SUFFIX="armhf"
+            RPM_ARCH="armv7hl"
+            warning "Unknown architecture: $ARCH, using ARM32 (armhf) in embedded mode"
+        else
+            ARCH_SUFFIX="amd64"
+            RPM_ARCH="x86_64"
+            warning "Unknown architecture: $ARCH, trying default amd64"
+        fi
         ;;
 esac
 
@@ -473,7 +560,7 @@ case $OS in
     ubuntu)
         PACKAGE="linuxstudio_${VERSION}_ubuntu-$(lsb_release -rs)_${ARCH_SUFFIX}.deb"
         info "Downloading $PACKAGE for architecture $ARCH..."
-        if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.deb 2>/dev/null; then
+        if safe_wget "$GITHUB_RELEASE/$PACKAGE" /tmp/linuxstudio.deb; then
             if dpkg -i /tmp/linuxstudio.deb 2>/dev/null; then
                 success "LinuxStudio installed!"
                 rm -f /tmp/linuxstudio.deb
@@ -488,7 +575,7 @@ case $OS in
     debian)
         PACKAGE="linuxstudio_${VERSION}_debian-${VERSION_ID}_${ARCH_SUFFIX}.deb"
         info "Downloading $PACKAGE for architecture $ARCH..."
-        if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.deb 2>/dev/null; then
+        if safe_wget "$GITHUB_RELEASE/$PACKAGE" /tmp/linuxstudio.deb; then
             if dpkg -i /tmp/linuxstudio.deb 2>/dev/null; then
                 success "LinuxStudio installed!"
                 rm -f /tmp/linuxstudio.deb
@@ -508,7 +595,7 @@ case $OS in
             PACKAGE="linuxstudio-${VERSION}-1.rockylinux-8.${RPM_ARCH}.rpm"
         fi
         info "Downloading $PACKAGE for architecture $ARCH..."
-        if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.rpm 2>/dev/null; then
+        if safe_wget "$GITHUB_RELEASE/$PACKAGE" /tmp/linuxstudio.rpm; then
             # Try to install or upgrade
             if rpm -Uvh /tmp/linuxstudio.rpm 2>/dev/null; then
                 success "LinuxStudio installed!"
@@ -523,18 +610,30 @@ case $OS in
         ;;
     fedora)
         PACKAGE="linuxstudio-${VERSION}-1.fedora-${VERSION_ID}.${RPM_ARCH}.rpm"
-        info "Downloading $PACKAGE for architecture $ARCH..."
-        if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.rpm 2>/dev/null; then
+        info "Downloading $PACKAGE for architecture $ARCH -> $RPM_ARCH..."
+        if safe_wget "$GITHUB_RELEASE/$PACKAGE" /tmp/linuxstudio.rpm; then
             # Try to install or upgrade
             if rpm -Uvh /tmp/linuxstudio.rpm 2>/dev/null; then
-                success "LinuxStudio installed!"
                 rm -f /tmp/linuxstudio.rpm
+                post_install_setup
                 exit 0
             elif rpm -q linuxstudio &>/dev/null; then
-                success "LinuxStudio already installed!"
                 rm -f /tmp/linuxstudio.rpm
+                post_install_setup
                 exit 0
             fi
+        fi
+        ;;
+    openstlinux*|yocto*)
+        # OpenSTLinux/Yocto systems usually don't have prebuilt packages, use embedded installation method directly
+        info "OpenSTLinux/Yocto system skipping standard package download, will use embedded installation method"
+        ;;
+    *)
+        # For other systems, if ARM32 architecture and in embedded mode, use embedded installation method directly
+        if [ "$ARCH_SUFFIX" = "armhf" ] && [ "$INSTALLATION_MODE" = "embedded" ]; then
+            info "ARM32 architecture embedded system, will use embedded installation method"
+        else
+            warning "No prebuilt package found for $OS ($ARCH)"
         fi
         ;;
 esac
@@ -542,22 +641,9 @@ esac
 warning "Direct download failed"
 echo ""
 
-# Before continuing, check if already installed
-if command -v xkl &>/dev/null; then
-    echo ""
-    success "✅ LinuxStudio is already installed!"
-    echo ""
-    info "🚀 Quick start:"
-    info "   xkl --version       # Check version"
-    info "   xkl status          # Check system status"
-    info "   xkl scene list      # List available scenes"
-    info "   xkl plugin list     # List available plugins"
-    echo ""
-    exit 0
-fi
-
 # Method 3: Embedded system manual installation (if embedded mode)
-if [ "$INSTALLATION_MODE" = "embedded" ]; then
+# Note: Try embedded installation before checking if already installed, as some embedded systems may have files but incomplete functionality
+if [ "$INSTALLATION_MODE" = "embedded" ] || [ "$EMBEDDED_SYSTEM" = true ]; then
     info "📱 Method 3: Embedded system manual installation..."
     echo ""
     
@@ -577,7 +663,7 @@ if [ "$INSTALLATION_MODE" = "embedded" ]; then
     
     info "Downloading $EMBEDDED_PACKAGE for embedded installation..."
     
-    if wget -q "$GITHUB_RELEASE/$EMBEDDED_PACKAGE" -O /tmp/linuxstudio_embedded.deb 2>/dev/null; then
+    if safe_wget "$GITHUB_RELEASE/$EMBEDDED_PACKAGE" /tmp/linuxstudio_embedded.deb; then
         info "✅ Package downloaded successfully"
         echo ""
         info "🔧 Performing embedded-optimized manual installation..."
@@ -682,6 +768,16 @@ EOF
         warning "Failed to download embedded package"
     fi
     echo ""
+fi
+
+# Before attempting compilation, check if already installed (avoid unnecessary compilation)
+if command -v xkl &>/dev/null; then
+    echo ""
+    success "✅ LinuxStudio core installed!"
+    echo ""
+    info "xkl command detected as available, skipping source compilation"
+    post_install_setup
+    exit 0
 fi
 
 # Method 4: Build from source

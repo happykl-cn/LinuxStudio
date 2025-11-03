@@ -77,6 +77,88 @@ success() { echo -e "${GREEN}[成功]${NC} $1"; }
 warning() { echo -e "${YELLOW}[警告]${NC} $1"; }
 error() { echo -e "${RED}[错误]${NC} $1"; }
 
+# 安全的下载函数，自动处理 SSL 证书验证失败（嵌入式系统兼容）
+safe_curl() {
+    local url=$1
+    local output=$2
+    local use_ssl_skip=false
+    
+    # 检测是否为嵌入式系统或 SSL 证书可能有问题
+    if [ "$EMBEDDED_SYSTEM" = true ] || [ "$INSTALLATION_MODE" = "embedded" ]; then
+        use_ssl_skip=true
+    fi
+    
+    # 先尝试正常下载
+    if curl -fsSL "$url" -o "$output" 2>/dev/null; then
+        return 0
+    fi
+    
+    # 如果失败且错误信息包含 SSL 相关，尝试跳过验证
+    local curl_error=$(curl -fsSL "$url" -o "$output" 2>&1)
+    if echo "$curl_error" | grep -qi "certificate\|SSL\|TLS\|verification failed"; then
+        warning "SSL 证书验证失败，正在跳过验证（嵌入式系统兼容模式）..."
+        if curl -fsSLk "$url" -o "$output" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
+# 安全的 wget 函数
+safe_wget() {
+    local url=$1
+    local output=$2
+    local use_ssl_skip=false
+    
+    # 检测是否为嵌入式系统
+    if [ "$EMBEDDED_SYSTEM" = true ] || [ "$INSTALLATION_MODE" = "embedded" ]; then
+        use_ssl_skip=true
+    fi
+    
+    # 先尝试正常下载
+    if wget -q "$url" -O "$output" 2>/dev/null; then
+        return 0
+    fi
+    
+    # 如果失败，尝试跳过证书验证
+    local wget_error=$(wget "$url" -O "$output" 2>&1)
+    if echo "$wget_error" | grep -qi "certificate\|SSL\|TLS\|verification failed\|certificates.crt"; then
+        warning "SSL 证书验证失败，正在跳过验证（嵌入式系统兼容模式）..."
+        if wget --no-check-certificate -q "$url" -O "$output" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
+# 安全的管道 curl（用于直接执行脚本）
+safe_curl_pipe() {
+    local url=$1
+    local use_ssl_skip=false
+    
+    if [ "$EMBEDDED_SYSTEM" = true ] || [ "$INSTALLATION_MODE" = "embedded" ]; then
+        use_ssl_skip=true
+    fi
+    
+    # 先尝试正常下载
+    if curl -fsSL "$url" 2>/dev/null | bash; then
+        return 0
+    fi
+    
+    # 检查错误
+    local test_output=$(curl -fsSL "$url" 2>&1)
+    if echo "$test_output" | grep -qi "certificate\|SSL\|TLS\|verification failed"; then
+        warning "SSL 证书验证失败，正在跳过验证（嵌入式系统兼容模式）..."
+        if curl -fsSLk "$url" 2>/dev/null | bash; then
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
 # 安装后配置函数（必须在使用前定义）
 post_install_setup() {
     echo ""
@@ -380,8 +462,8 @@ echo ""
 info "📦 方法 1: 从软件包仓库安装..."
 echo ""
 
-# 从 GitHub 获取 setup.sh 脚本
-if curl -fsSL https://raw.githubusercontent.com/happykl-cn/LinuxStudio/main/packaging/setup.sh 2>/dev/null | bash; then
+# 从 GitHub 获取 setup.sh 脚本（使用安全的下载函数）
+if safe_curl_pipe https://raw.githubusercontent.com/happykl-cn/LinuxStudio/main/packaging/setup.sh; then
     info "仓库配置成功"
     echo ""
     
@@ -437,8 +519,15 @@ if curl -fsSL https://raw.githubusercontent.com/happykl-cn/LinuxStudio/main/pack
                 warning "未找到 zypper"
             fi
             ;;
+        openstlinux*|yocto*)
+            # OpenSTLinux / Yocto 系统通常使用 opkg 或类似轻量级包管理器
+            # 但大多数情况下不支持标准包管理器安装
+            info "检测到 OpenSTLinux/Yocto 系统，将使用嵌入式安装方法"
+            warning "OpenSTLinux 系统不支持标准包管理器安装，跳过方法 1"
+            ;;
         *)
             warning "不支持的操作系统包安装: $OS"
+            info "将尝试其他安装方法..."
             ;;
     esac
 fi
@@ -464,18 +553,33 @@ case $ARCH in
         ARCH_SUFFIX="arm64"
         RPM_ARCH="aarch64"
         ;;
+    armv7l|armv7|armhf)
+        ARCH_SUFFIX="armhf"
+        RPM_ARCH="armv7hl"  # RPM 使用 armv7hl
+        ;;
+    armv6l|armv6)
+        ARCH_SUFFIX="armhf"
+        RPM_ARCH="armv6hl"
+        ;;
     *)
-        ARCH_SUFFIX="amd64"  # 默认尝试
-        RPM_ARCH="x86_64"
-        warning "未知架构: $ARCH，尝试使用默认架构"
+        # 对于未知架构，如果是嵌入式模式，尝试 armhf
+        if [ "$INSTALLATION_MODE" = "embedded" ] || [ "$EMBEDDED_SYSTEM" = true ]; then
+            ARCH_SUFFIX="armhf"
+            RPM_ARCH="armv7hl"
+            warning "未知架构: $ARCH，在嵌入式模式下使用 ARM32 (armhf)"
+        else
+            ARCH_SUFFIX="amd64"
+            RPM_ARCH="x86_64"
+            warning "未知架构: $ARCH，尝试使用默认架构 amd64"
+        fi
         ;;
 esac
 
 case $OS in
     ubuntu)
         PACKAGE="linuxstudio_${VERSION}_ubuntu-$(lsb_release -rs)_${ARCH_SUFFIX}.deb"
-        info "正在下载 $PACKAGE（架构: $ARCH）..."
-        if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.deb 2>/dev/null; then
+        info "正在下载 $PACKAGE（架构: $ARCH -> $ARCH_SUFFIX）..."
+        if safe_wget "$GITHUB_RELEASE/$PACKAGE" /tmp/linuxstudio.deb; then
             if dpkg -i /tmp/linuxstudio.deb 2>/dev/null; then
                 rm -f /tmp/linuxstudio.deb
                 post_install_setup
@@ -489,8 +593,8 @@ case $OS in
         ;;
     debian)
         PACKAGE="linuxstudio_${VERSION}_debian-${VERSION_ID}_${ARCH_SUFFIX}.deb"
-        info "正在下载 $PACKAGE（架构: $ARCH）..."
-        if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.deb 2>/dev/null; then
+        info "正在下载 $PACKAGE（架构: $ARCH -> $ARCH_SUFFIX）..."
+        if safe_wget "$GITHUB_RELEASE/$PACKAGE" /tmp/linuxstudio.deb; then
             if dpkg -i /tmp/linuxstudio.deb 2>/dev/null; then
                 rm -f /tmp/linuxstudio.deb
                 post_install_setup
@@ -502,6 +606,10 @@ case $OS in
             fi
         fi
         ;;
+    openstlinux*|yocto*)
+        # OpenSTLinux/Yocto 系统通常没有预编译包，直接使用嵌入式安装方法
+        info "OpenSTLinux/Yocto 系统跳过标准包下载，将使用嵌入式安装方法"
+        ;;
     centos|rhel|rocky|almalinux)
         # 根据系统版本选择合适的包
         if [ "${VERSION_ID%%.*}" -ge 9 ]; then
@@ -510,7 +618,7 @@ case $OS in
             PACKAGE="linuxstudio-${VERSION}-1.rockylinux-8.${RPM_ARCH}.rpm"
         fi
         info "正在下载 $PACKAGE（架构: $ARCH）..."
-        if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.rpm 2>/dev/null; then
+        if safe_wget "$GITHUB_RELEASE/$PACKAGE" /tmp/linuxstudio.rpm; then
             # 尝试安装或升级
             if rpm -Uvh /tmp/linuxstudio.rpm 2>/dev/null; then
                 rm -f /tmp/linuxstudio.rpm
@@ -525,8 +633,8 @@ case $OS in
         ;;
     fedora)
         PACKAGE="linuxstudio-${VERSION}-1.fedora-${VERSION_ID}.${RPM_ARCH}.rpm"
-        info "正在下载 $PACKAGE（架构: $ARCH）..."
-        if wget -q "$GITHUB_RELEASE/$PACKAGE" -O /tmp/linuxstudio.rpm 2>/dev/null; then
+        info "正在下载 $PACKAGE（架构: $ARCH -> $RPM_ARCH）..."
+        if safe_wget "$GITHUB_RELEASE/$PACKAGE" /tmp/linuxstudio.rpm; then
             # 尝试安装或升级
             if rpm -Uvh /tmp/linuxstudio.rpm 2>/dev/null; then
                 rm -f /tmp/linuxstudio.rpm
@@ -539,19 +647,22 @@ case $OS in
             fi
         fi
         ;;
+    *)
+        # 对于其他系统，如果是 ARM32 架构且是嵌入式模式，直接使用嵌入式安装方法
+        if [ "$ARCH_SUFFIX" = "armhf" ] && [ "$INSTALLATION_MODE" = "embedded" ]; then
+            info "ARM32 架构的嵌入式系统，将使用嵌入式安装方法"
+        else
+            warning "未找到适合 $OS ($ARCH) 的预编译包"
+        fi
+        ;;
 esac
 
 warning "直接下载失败"
 echo ""
 
-# 在继续之前，检查是否已经安装
-if command -v xkl &>/dev/null; then
-    post_install_setup
-    exit 0
-fi
-
 # 方法 3: 嵌入式系统手动安装（如果是嵌入式模式）
-if [ "$INSTALLATION_MODE" = "embedded" ]; then
+# 注意：在检查已安装之前先尝试嵌入式安装，因为某些嵌入式系统可能文件存在但功能不完整
+if [ "$INSTALLATION_MODE" = "embedded" ] || [ "$EMBEDDED_SYSTEM" = true ]; then
     info "📱 方法 3: 嵌入式系统手动安装..."
     echo ""
     
@@ -571,7 +682,7 @@ if [ "$INSTALLATION_MODE" = "embedded" ]; then
     
     info "正在下载 $EMBEDDED_PACKAGE 进行嵌入式安装..."
     
-    if wget -q "$GITHUB_RELEASE/$EMBEDDED_PACKAGE" -O /tmp/linuxstudio_embedded.deb 2>/dev/null; then
+    if safe_wget "$GITHUB_RELEASE/$EMBEDDED_PACKAGE" /tmp/linuxstudio_embedded.deb; then
         info "✅ 软件包下载成功"
         echo ""
         info "🔧 执行嵌入式优化手动安装..."
@@ -673,6 +784,16 @@ EOF
         warning "下载嵌入式软件包失败"
     fi
     echo ""
+fi
+
+# 在尝试编译之前，检查是否已经安装（避免不必要的编译）
+if command -v xkl &>/dev/null; then
+    echo ""
+    success "✅ LinuxStudio 核心已安装！"
+    echo ""
+    info "检测到 xkl 命令可用，跳过源码编译"
+    post_install_setup
+    exit 0
 fi
 
 # 方法 4: 从源码编译

@@ -32,6 +32,10 @@ void Logger::setLogFile(const std::string& path) {
         logFile_.close();
     }
     logFile_.open(path, std::ios::app);
+    if (!logFile_.is_open()) {
+        // 如果打开失败，静默失败（不影响程序运行）
+        // 日志将只输出到控制台
+    }
 }
 
 void Logger::setMinLevel(LogLevel level) {
