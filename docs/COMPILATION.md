@@ -16,22 +16,60 @@
 
 ```
 LinuxStudio/
-├── src/
-│   ├── cli/
-│   │   └── main.cpp          # CLI 主程序入口
-│   ├── core/
-│   │   └── engine.cpp        # 核心引擎
-│   ├── utils/
-│   │   └── logger.cpp        # 日志系统
-│   └── managers/
-│       ├── component_manager.cpp
-│       └── plugin_manager.cpp
-├── include/
-│   └── linuxstudio/
-│       ├── core.hpp          # 核心头文件
-│       ├── logger.hpp
-│       └── i18n.hpp          # 国际化
-└── CMakeLists.txt           # CMake 构建配置
+├── CMakeLists.txt              # CMake 构建配置
+├── build.sh                    # 快速编译脚本
+├── heaven-cn.sh                # 中文安装脚本
+├── heaven.sh                   # 英文安装脚本
+│
+├── include/linuxstudio/        # C++ 头文件
+│   ├── core.hpp                # 核心引擎头文件
+│   ├── managers.hpp            # 管理器头文件
+│   ├── logger.hpp              # 日志系统头文件
+│   └── i18n.hpp                # 国际化头文件
+│
+├── src/                        # C++ 源代码
+│   ├── cli/                    # CLI 命令行界面
+│   │   ├── main.cpp            # CLI 主程序入口
+│   │   ├── commands.cpp        # 命令实现
+│   │   └── cli_handler.cpp     # 命令处理器
+│   ├── core/                   # 核心模块
+│   │   ├── engine.cpp          # 核心引擎实现
+│   │   ├── system_detector.cpp # 系统检测
+│   │   └── config.cpp          # 配置管理
+│   ├── managers/               # 管理器模块
+│   │   ├── component_manager.cpp  # 组件管理器
+│   │   └── plugin_manager.cpp     # 插件管理器
+│   └── utils/                  # 工具模块
+│       ├── logger.cpp          # 日志实现
+│       └── file_utils.cpp      # 文件工具
+│
+├── packaging/                  # 打包配置
+│   ├── debian/                 # DEB 包配置
+│   │   ├── control
+│   │   ├── changelog
+│   │   ├── postinst
+│   │   ├── prerm
+│   │   └── postrm
+│   ├── rpm/                    # RPM 包配置
+│   │   └── linuxstudio.spec
+│   └── setup.sh                # 仓库配置脚本
+│
+├── tests/                      # 测试代码
+│   ├── unit/                   # 单元测试
+│   └── integration/            # 集成测试
+│
+├── docs/                       # 文档
+│   ├── README.md               # 文档索引
+│   ├── INSTALLATION.md         # 安装指南
+│   ├── USER_GUIDE.md           # 用户指南
+│   ├── DEVELOPER_GUIDE.md      # 开发者指南
+│   ├── CHANGELOG.md            # 更新日志
+│   └── COMPILATION.md          # 本文件
+│
+└── web/                        # Web 界面（开发中）
+    ├── index.html
+    ├── script.js
+    └── styles.css
 ```
 
 ### 2. 编译步骤
