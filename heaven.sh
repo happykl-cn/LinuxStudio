@@ -520,7 +520,7 @@ echo ""
 info "📦 Method 2: Downloading package from GitHub Releases..."
 echo ""
 
-VERSION="1.1.1"
+VERSION="1.1.2"
 GITHUB_RELEASE="https://github.com/happykl-cn/LinuxStudio/releases/latest/download"
 
 # 检测架构

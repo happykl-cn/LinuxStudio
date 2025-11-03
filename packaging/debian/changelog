@@ -1,3 +1,26 @@
+linuxstudio (1.1.2-1) unstable; urgency=medium
+
+  * Bug fixes and improvements
+  * Fixed scene command implementation
+  * Enhanced installation verification with version checks
+  * Improved embedded system compatibility
+  * Added force overwrite for binary updates
+  * Better SSL certificate handling for embedded systems
+  * Enhanced download progress display
+
+ -- Dino Studio <support@linuxstudio.org>  Mon, 03 Nov 2025 10:00:00 +0800
+
+linuxstudio (1.1.1-1) unstable; urgency=medium
+
+  * Scene command implementation
+  * Chinese localization (i18n) support
+  * Embedded system optimizations
+  * ARM32/ARM64 architecture support
+  * Automatic log directory creation
+  * SSL certificate verification bypass for embedded systems
+
+ -- Dino Studio <support@linuxstudio.org>  Sat, 02 Nov 2025 14:00:00 +0800
+
 linuxstudio (1.0.0-1) unstable; urgency=medium
 
   * Initial release

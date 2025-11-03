@@ -105,27 +105,42 @@ safe_curl() {
     return 1
 }
 
-# 安全的 wget 函数
+# 安全的 wget 函数（带进度条）
 safe_wget() {
     local url=$1
     local output=$2
     local use_ssl_skip=false
+    local filename=$(basename "$url")
     
     # 检测是否为嵌入式系统
     if [ "$EMBEDDED_SYSTEM" = true ] || [ "$INSTALLATION_MODE" = "embedded" ]; then
         use_ssl_skip=true
     fi
     
-    # 先尝试正常下载
-    if wget -q "$url" -O "$output" 2>/dev/null; then
+    # 显示下载信息
+    info "正在下载: $filename"
+    
+    # 尝试正常下载（带进度条）
+    # 使用 wget 的简洁进度显示
+    if wget --progress=bar:force "$url" -O "$output" 2>&1 | tee /tmp/wget_progress.log | grep -v "^$" | while IFS= read -r line; do
+        if echo "$line" | grep -q "%"; then
+            printf "\r\033[K%s" "$line" >&2
+        fi
+    done && [ -f "$output" ] && [ -s "$output" ]; then
+        echo "" >&2  # 换行
         return 0
     fi
     
-    # 如果失败，尝试跳过证书验证
-    local wget_error=$(wget "$url" -O "$output" 2>&1)
+    # 如果失败，尝试跳过证书验证（带进度条）
+    local wget_error=$(wget "$url" -O "$output" 2>&1 | head -5)
     if echo "$wget_error" | grep -qi "certificate\|SSL\|TLS\|verification failed\|certificates.crt"; then
         warning "SSL 证书验证失败，正在跳过验证（嵌入式系统兼容模式）..."
-        if wget --no-check-certificate -q "$url" -O "$output" 2>/dev/null; then
+        if wget --no-check-certificate --progress=bar:force "$url" -O "$output" 2>&1 | tee /tmp/wget_progress.log | grep -v "^$" | while IFS= read -r line; do
+            if echo "$line" | grep -q "%"; then
+                printf "\r\033[K%s" "$line" >&2
+            fi
+        done && [ -f "$output" ] && [ -s "$output" ]; then
+            echo "" >&2  # 换行
             return 0
         fi
     fi
@@ -539,7 +554,7 @@ echo ""
 info "📦 方法 2: 从 GitHub Releases 下载软件包..."
 echo ""
 
-VERSION="1.1.1"
+VERSION="1.1.2"
 GITHUB_RELEASE="https://github.com/happykl-cn/LinuxStudio/releases/latest/download"
 
 # 检测架构
@@ -681,8 +696,16 @@ if [ "$INSTALLATION_MODE" = "embedded" ] || [ "$EMBEDDED_SYSTEM" = true ]; then
     esac
     
     info "正在下载 $EMBEDDED_PACKAGE 进行嵌入式安装..."
+    info "下载地址: $GITHUB_RELEASE/$EMBEDDED_PACKAGE"
+    echo ""
     
     if safe_wget "$GITHUB_RELEASE/$EMBEDDED_PACKAGE" /tmp/linuxstudio_embedded.deb; then
+        # 验证下载的包版本
+        if command -v dpkg-deb >/dev/null 2>&1; then
+            PACKAGE_VERSION=$(dpkg-deb -f /tmp/linuxstudio_embedded.deb Version 2>/dev/null || echo "unknown")
+            info "下载的包版本: $PACKAGE_VERSION"
+        fi
+        echo ""
         info "✅ 软件包下载成功"
         echo ""
         info "🔧 执行嵌入式优化手动安装..."
@@ -696,11 +719,14 @@ if [ "$INSTALLATION_MODE" = "embedded" ] || [ "$EMBEDDED_SYSTEM" = true ]; then
         ar x /tmp/linuxstudio_embedded.deb
         tar -xzf data.tar.gz
         
-        # 复制文件到系统目录
+        # 复制文件到系统目录（强制覆盖）
         info "→ 正在安装文件..."
-        cp -r usr/* /usr/ 2>/dev/null || true
-        cp -r opt/* /opt/ 2>/dev/null || true
-        cp -r etc/* /etc/ 2>/dev/null || true
+        # 先删除旧文件以确保覆盖
+        rm -f /usr/bin/xkl /usr/bin/linuxstudio 2>/dev/null || true
+        # 强制复制新文件
+        cp -rf usr/* /usr/ 2>/dev/null || true
+        cp -rf opt/* /opt/ 2>/dev/null || true
+        cp -rf etc/* /etc/ 2>/dev/null || true
         
         # 创建必要目录
         info "→ 正在创建目录结构..."
@@ -728,9 +754,27 @@ EOF
         info "→ 正在设置权限..."
         chmod +x /usr/bin/xkl 2>/dev/null || true
         
-        # 创建符号链接
+        # 创建符号链接（强制覆盖）
         info "→ 正在创建符号链接..."
+        rm -f /usr/bin/linuxstudio 2>/dev/null || true
         ln -sf /usr/bin/xkl /usr/bin/linuxstudio 2>/dev/null || true
+        
+        # 验证安装
+        info "→ 验证安装..."
+        if [ -x /usr/bin/xkl ]; then
+            INSTALLED_VERSION=$(/usr/bin/xkl --version 2>&1 | grep -oP 'v\d+\.\d+\.\d+' || echo "unknown")
+            info "✅ 安装成功！版本: $INSTALLED_VERSION"
+            
+            # 检查是否包含 scene 命令
+            if strings /usr/bin/xkl 2>/dev/null | grep -qi "cmdScene\|scene list"; then
+                info "✅ 确认包含 scene 命令"
+            else
+                warning "⚠️  警告：二进制文件可能不包含 scene 命令"
+                warning "⚠️  这可能是旧版本的包，请检查 GitHub Releases"
+            fi
+        else
+            error "❌ 安装失败：/usr/bin/xkl 不可执行"
+        fi
         
         # 嵌入式系统优化
         info "→ 正在应用嵌入式系统优化..."
